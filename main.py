@@ -1,4 +1,4 @@
-"""Portero de Medianoche - paso 3: rasgos, diálogos, fin y reinicio.
+"""Portero de Medianoche - paso 4: sonidos.
 
 Cada visitante camina hasta la puerta. El jugador compara su aspecto y lo
 que dice con el libro de residentes y decide: A = permitir, R = rechazar.
@@ -9,7 +9,8 @@ import pygame
 
 import ajustes as aj
 from utilidades import (generar_visitante, decision_correcta,
-                        calcular_puntaje, armar_mensaje, nueva_partida)
+                        calcular_puntaje, armar_mensaje, nueva_partida,
+                        cargar_sonidos)
 
 
 def dibujar_libro(pantalla, fuente, fuente_chica):
@@ -56,7 +57,7 @@ def main():
     velo = pygame.Surface((aj.ANCHO, aj.ALTO))   # fondo oscuro del "fin"
     velo.set_alpha(190)
     velo.fill((0, 0, 0))
-    # (más adelante: sonidos)
+    sonidos = cargar_sonidos()
 
     # --- Estado de la partida ---
     puntaje, vidas, racha, visitante = nueva_partida()
@@ -89,18 +90,22 @@ def main():
                         puntaje = calcular_puntaje(puntaje, True, racha)
                         racha += 1
                         color_mensaje = aj.COLOR_ACIERTO
+                        sonidos["acierto"].play()
                     else:
                         vidas -= 1
                         racha = 0
                         color_mensaje = aj.COLOR_ERROR
+                        sonidos["error"].play()
                     if vidas <= 0:
                         estado = aj.ESTADO_FIN
+                        sonidos["susto"].play()
                     else:
                         visitante = generar_visitante()
 
         # 2) ACTUALIZAR
         if estado == aj.ESTADO_JUGANDO:
-            visitante.actualizar(dt)
+            if visitante.actualizar(dt):   # True al llegar a la puerta
+                sonidos["timbre"].play()
 
         # 3) DIBUJAR
         pantalla.fill(aj.COLOR_FONDO)

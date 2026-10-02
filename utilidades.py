@@ -1,8 +1,12 @@
 """Funciones auxiliares de la lógica del juego."""
 
+import os
 import random
 
+import pygame
+
 import ajustes as aj
+import generar_sonidos
 from visitante import Visitante
 
 
@@ -87,3 +91,22 @@ def armar_mensaje(visitante, acerto):
 def nueva_partida():
     """Devuelve los valores iniciales: (puntaje, vidas, racha, visitante)."""
     return 0, aj.VIDAS_INICIALES, 0, generar_visitante()
+
+
+def cargar_sonidos():
+    """Devuelve un diccionario {nombre: pygame.mixer.Sound}.
+
+    Si faltan los archivos .wav, los genera primero.
+    """
+    faltan = any(
+        not os.path.exists(os.path.join(aj.SONIDOS_CARPETA, f"{n}.wav"))
+        for n in aj.NOMBRES_SONIDOS)
+    if faltan:
+        generar_sonidos.generar_todos()
+    sonidos = {}
+    for nombre in aj.NOMBRES_SONIDOS:
+        sonido = pygame.mixer.Sound(
+            os.path.join(aj.SONIDOS_CARPETA, f"{nombre}.wav"))
+        sonido.set_volume(aj.VOLUMEN)
+        sonidos[nombre] = sonido
+    return sonidos

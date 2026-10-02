@@ -36,11 +36,16 @@ class Visitante:
         )
 
     def actualizar(self, dt):
-        """Hace caminar al visitante hasta la puerta (dt en segundos)."""
-        if not self.llego():
+        """Hace caminar al visitante hasta la puerta (dt en segundos).
+
+        Devuelve True solo en el cuadro exacto en que llega (para el timbre).
+        """
+        ya_estaba = self.llego()
+        if not ya_estaba:
             self.x = min(self.x + aj.VISITANTE_VELOCIDAD * dt,
                          aj.VISITANTE_X_DESTINO)
         self.rect.x = int(self.x)
+        return (not ya_estaba) and self.llego()
 
     def llego(self):
         """Devuelve True si ya está frente a la puerta."""

@@ -78,3 +78,12 @@ NOMBRES_PARECIDOS = {
 
 # Mascotas posibles (para que el impostor invente una distinta)
 MASCOTAS = ["gato", "perro", "canario", "loro", "conejo", "pez"]
+
+# --- Sonidos ---
+import os
+
+RUTA_BASE = os.path.dirname(os.path.abspath(__file__))
+SONIDOS_CARPETA = os.path.join(RUTA_BASE, "sonidos")
+NOMBRES_SONIDOS = ["timbre", "acierto", "error", "susto"]
+FRECUENCIA_MUESTREO = 44100    # muestras por segundo de los .wav
+VOLUMEN = 0.6                  # volumen de reproducción (0.0 a 1.0)
