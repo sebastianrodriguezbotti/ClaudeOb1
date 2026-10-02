@@ -1,39 +1,45 @@
-"""Portero de Medianoche - paso 2: visitantes y decisiones.
+"""Portero de Medianoche - paso 3: rasgos, diálogos, fin y reinicio.
 
-Cada visitante camina hasta la puerta. El jugador compara sus datos con
-el libro de residentes y decide: A = permitir, R = rechazar.
+Cada visitante camina hasta la puerta. El jugador compara su aspecto y lo
+que dice con el libro de residentes y decide: A = permitir, R = rechazar.
+Al perder todas las vidas aparece la pantalla de fin; ENTER reinicia.
 """
 
 import pygame
 
 import ajustes as aj
-from utilidades import generar_visitante, decision_correcta, calcular_puntaje
+from utilidades import (generar_visitante, decision_correcta,
+                        calcular_puntaje, armar_mensaje, nueva_partida)
 
 
-def dibujar_libro(pantalla, fuente):
-    """Dibuja el libro de residentes en la esquina superior derecha."""
-    pygame.draw.rect(pantalla, aj.COLOR_PANEL, (680, 10, 270, 150))
+def dibujar_libro(pantalla, fuente, fuente_chica):
+    """Dibuja el libro de residentes (nombre y rasgos de cada vecino)."""
+    pygame.draw.rect(pantalla, aj.COLOR_PANEL, (640, 10, 310, 255))
     pantalla.blit(fuente.render("LIBRO DE RESIDENTES", True, aj.COLOR_TEXTO),
-                  (690, 16))
+                  (650, 16))
     y = 42
-    for apto, nombre in aj.RESIDENTES.items():
-        pantalla.blit(fuente.render(f"{apto}: {nombre}", True, aj.COLOR_TEXTO),
-                      (690, y))
-        y += 22
+    for apto, d in aj.RESIDENTES.items():
+        rasgos = f"pelo {d['pelo']}"
+        if d["lentes"]:
+            rasgos += ", lentes"
+        if d["bigote"]:
+            rasgos += ", bigote"
+        rasgos += f" · {d['mascota']}"
+        pantalla.blit(fuente.render(f"{apto} {d['nombre']}", True,
+                                    aj.COLOR_TEXTO), (650, y))
+        pantalla.blit(fuente_chica.render(rasgos, True, (160, 160, 180)),
+                      (650, y + 20))
+        y += 44
 
 
 def dibujar_ficha(pantalla, fuente, visitante):
-    """Dibuja los datos que declara el visitante (si ya llegó)."""
-    pygame.draw.rect(pantalla, aj.COLOR_PANEL, (20, 420, 640, 100))
-    lineas = [
-        f"Nombre: {visitante.nombre}",
-        f"Apartamento: {visitante.apartamento}",
-        f"Dedos en la mano: {visitante.dedos}",
-        "[A] Permitir     [R] Rechazar",
-    ]
+    """Dibuja lo que dice el visitante y las teclas de decisión."""
+    pygame.draw.rect(pantalla, aj.COLOR_PANEL, (20, 420, 600, 100))
+    lineas = [f"«{f}»" for f in visitante.frases()]
+    lineas.append("[A] Permitir     [R] Rechazar")
     for i, linea in enumerate(lineas):
         pantalla.blit(fuente.render(linea, True, aj.COLOR_TEXTO),
-                      (30, 426 + i * 22))
+                      (30, 430 + i * 26))
 
 
 def main():
@@ -43,16 +49,18 @@ def main():
     pygame.display.set_caption(aj.TITULO)
     reloj = pygame.time.Clock()
     fuente = pygame.font.SysFont("consolas", 18)
+    fuente_chica = pygame.font.SysFont("consolas", 15)
     fuente_grande = pygame.font.SysFont("consolas", 28)
 
     # --- Recursos: se cargan UNA sola vez, antes del bucle ---
-    # (más adelante: sonidos e imágenes)
+    velo = pygame.Surface((aj.ANCHO, aj.ALTO))   # fondo oscuro del "fin"
+    velo.set_alpha(190)
+    velo.fill((0, 0, 0))
+    # (más adelante: sonidos)
 
     # --- Estado de la partida ---
-    puntaje = 0
-    vidas = aj.VIDAS_INICIALES
-    racha = 0
-    visitante = generar_visitante()
+    puntaje, vidas, racha, visitante = nueva_partida()
+    estado = aj.ESTADO_JUGANDO
     mensaje = ""
     color_mensaje = aj.COLOR_TEXTO
 
@@ -67,44 +75,59 @@ def main():
             elif evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_ESCAPE:
                     corriendo = False
-                # Solo se decide si el visitante llegó y quedan vidas
-                elif visitante.llego() and vidas > 0 and evento.key in (
-                        pygame.K_a, pygame.K_r):
+                elif estado == aj.ESTADO_FIN:
+                    if evento.key == pygame.K_RETURN:   # volver a jugar
+                        puntaje, vidas, racha, visitante = nueva_partida()
+                        mensaje = ""
+                        estado = aj.ESTADO_JUGANDO
+                elif visitante.llego() and evento.key in (pygame.K_a,
+                                                          pygame.K_r):
                     permitir = evento.key == pygame.K_a
                     acerto = decision_correcta(visitante, permitir)
+                    mensaje = armar_mensaje(visitante, acerto)
                     if acerto:
                         puntaje = calcular_puntaje(puntaje, True, racha)
                         racha += 1
-                        mensaje, color_mensaje = "¡Bien!", aj.COLOR_ACIERTO
+                        color_mensaje = aj.COLOR_ACIERTO
                     else:
                         vidas -= 1
                         racha = 0
-                        mensaje, color_mensaje = "¡Error!", aj.COLOR_ERROR
-                    visitante = generar_visitante()  # llega el siguiente
+                        color_mensaje = aj.COLOR_ERROR
+                    if vidas <= 0:
+                        estado = aj.ESTADO_FIN
+                    else:
+                        visitante = generar_visitante()
 
         # 2) ACTUALIZAR
-        visitante.actualizar(dt)
+        if estado == aj.ESTADO_JUGANDO:
+            visitante.actualizar(dt)
 
         # 3) DIBUJAR
         pantalla.fill(aj.COLOR_FONDO)
         pygame.draw.rect(pantalla, aj.COLOR_PARED, (0, 0, aj.ANCHO, aj.SUELO_Y))
-        pygame.draw.rect(pantalla, aj.COLOR_PUERTA, (780, 180, 110, 220))
+        pygame.draw.rect(pantalla, aj.COLOR_PUERTA, aj.PUERTA_RECT)
         visitante.dibujar(pantalla)
-        dibujar_libro(pantalla, fuente)
+        dibujar_libro(pantalla, fuente, fuente_chica)
         if visitante.llego():
             dibujar_ficha(pantalla, fuente, visitante)
 
-        pantalla.blit(
-            fuente_grande.render(
-                f"Puntaje: {puntaje}  Vidas: {vidas}  Racha: {racha}",
-                True, aj.COLOR_TEXTO),
-            (20, 20))
-        pantalla.blit(fuente_grande.render(mensaje, True, color_mensaje),
-                      (20, 60))
-        if vidas <= 0:
-            pantalla.blit(fuente_grande.render(
-                "FIN DE PARTIDA (reinicio: próximo paso)", True,
-                aj.COLOR_ERROR), (200, 250))
+        pantalla.blit(fuente_grande.render(
+            f"Puntaje: {puntaje}  Vidas: {vidas}  Racha: {racha}",
+            True, aj.COLOR_TEXTO), (20, 15))
+        pantalla.blit(fuente.render(mensaje, True, color_mensaje), (20, 55))
+
+        if estado == aj.ESTADO_FIN:
+            pantalla.blit(velo, (0, 0))
+            textos = [
+                ("FIN DE LA PARTIDA", fuente_grande, aj.COLOR_ERROR),
+                (f"Puntaje final: {puntaje}", fuente_grande, aj.COLOR_TEXTO),
+                (mensaje, fuente, aj.COLOR_TEXTO),
+                ("ENTER para volver a jugar", fuente, aj.COLOR_ACIERTO),
+            ]
+            for i, (texto, fnt, color) in enumerate(textos):
+                img = fnt.render(texto, True, color)
+                pantalla.blit(img, img.get_rect(
+                    center=(aj.ANCHO // 2, 190 + i * 45)))
 
         pygame.display.flip()
 
