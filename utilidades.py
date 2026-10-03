@@ -10,39 +10,32 @@ import generar_sonidos
 from visitante import Visitante
 
 
-def _texto_rasgo(nombre_rasgo, valor):
-    """Devuelve el rasgo en palabras (uso interno), ej. 'con lentes'."""
-    if nombre_rasgo == "lentes":
-        return "con lentes" if valor else "sin lentes"
-    return "con bigote" if valor else "sin bigote"
+def generar_visitante(paciencia=aj.PACIENCIA_BASE, nivel=aj.NIVELES[0]):
+    """Crea un visitante al azar, humano o impostor, según el nivel.
 
-
-def generar_visitante(paciencia=aj.PACIENCIA_BASE):
-    """Crea un visitante al azar, humano o impostor.
-
-    Un humano coincide en todo con el libro de residentes.
-    Un impostor tiene UNA inconsistencia: nombre, apartamento,
-    un rasgo físico o algo que dice (la mascota).
-    'paciencia' son los segundos que espera frente a la puerta.
+    'nivel' define cuántos vecinos hay, qué tan seguido aparecen impostores
+    y qué tipos de inconsistencia pueden tener. 'paciencia' son los
+    segundos que espera frente a la puerta.
     """
-    apto = random.choice(list(aj.RESIDENTES))
+    apartamentos = list(aj.RESIDENTES)[:nivel["residentes"]]
+    apto = random.choice(apartamentos)
     datos = aj.RESIDENTES[apto]
     nombre = datos["nombre"]
     pelo, lentes = datos["pelo"], datos["lentes"]
     bigote, mascota = datos["bigote"], datos["mascota"]
 
-    if random.random() >= aj.PROB_IMPOSTOR:
+    if random.random() >= nivel["prob_impostor"]:
         return Visitante(nombre, apto, pelo, lentes, bigote, mascota, False,
                          paciencia=paciencia)
 
-    tipo = random.choice(["nombre", "apartamento", "rasgo", "dicho"])
+    tipo = random.choice(nivel["tipos"])
     motivo = ""
     if tipo == "nombre":
         nombre = aj.NOMBRES_PARECIDOS[apto]
         motivo = f"Su nombre estaba mal: es {datos['nombre']}"
     elif tipo == "apartamento":
         real = apto
-        apto = random.choice([a for a in aj.RESIDENTES if a != real])
+        apto = random.choice([a for a in apartamentos if a != real])
         motivo = f"{nombre} vive en el {real}, no en el {apto}"
     elif tipo == "rasgo":
         rasgo = random.choice(["pelo", "lentes", "bigote"])
@@ -51,10 +44,12 @@ def generar_visitante(paciencia=aj.PACIENCIA_BASE):
             motivo = f"Tenía pelo {pelo}; el libro dice {datos['pelo']}"
         elif rasgo == "lentes":
             lentes = not lentes
-            motivo = f"Estaba {_texto_rasgo('lentes', lentes)}; el libro no"
+            motivo = ("Tenía lentes y el libro no los menciona" if lentes
+                      else "No tenía lentes y el libro dice que sí")
         else:
             bigote = not bigote
-            motivo = f"Estaba {_texto_rasgo('bigote', bigote)}; el libro no"
+            motivo = ("Tenía bigote y el libro no lo menciona" if bigote
+                      else "No tenía bigote y el libro dice que sí")
     else:
         mascota = random.choice([m for m in aj.MASCOTAS if m != mascota])
         motivo = f"Dijo tener un {mascota}; el libro dice {datos['mascota']}"
@@ -74,21 +69,21 @@ def calcular_puntaje(puntaje, acerto, racha):
     """Devuelve el nuevo puntaje según el resultado y la racha actual.
 
     Cada acierto suma puntos base más un bonus por racha.
-    Un error no resta puntos (resta una vida en main.py).
+    Un error no resta puntos (resta una vida).
     """
     if acerto:
         return puntaje + aj.PUNTOS_ACIERTO + aj.PUNTOS_RACHA * racha
     return puntaje
 
 
-def calcular_paciencia(racha):
+def calcular_paciencia(racha, nivel):
     """Devuelve los segundos de paciencia del próximo visitante.
 
-    Cada acierto seguido le quita un poco de tiempo (más difícil),
-    pero nunca baja del mínimo.
+    Parte de la paciencia del nivel y baja con cada acierto seguido,
+    pero nunca por debajo del mínimo.
     """
     return max(aj.PACIENCIA_MIN,
-               aj.PACIENCIA_BASE - aj.PACIENCIA_REDUCCION * racha)
+               nivel["paciencia"] - aj.PACIENCIA_REDUCCION * racha)
 
 
 def armar_mensaje(visitante, acerto, tiempo_agotado=False):
@@ -101,11 +96,6 @@ def armar_mensaje(visitante, acerto, tiempo_agotado=False):
     detalle = visitante.motivo if visitante.es_impostor else (
         "Era un vecino de verdad")
     return f"{prefijo} {detalle}"
-
-
-def nueva_partida():
-    """Devuelve los valores iniciales: (puntaje, vidas, racha, visitante)."""
-    return 0, aj.VIDAS_INICIALES, 0, generar_visitante()
 
 
 def cargar_sonidos():
@@ -125,3 +115,14 @@ def cargar_sonidos():
         sonido.set_volume(aj.VOLUMEN)
         sonidos[nombre] = sonido
     return sonidos
+
+
+def aplicar_volumen(sonidos, volumen, activo):
+    """Ajusta el volumen de todos los sonidos y devuelve el volumen aplicado.
+
+    Si el sonido está desactivado, el volumen efectivo es 0.
+    """
+    efectivo = volumen if activo else 0.0
+    for sonido in sonidos.values():
+        sonido.set_volume(efectivo)
+    return efectivo
