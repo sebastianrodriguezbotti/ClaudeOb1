@@ -3,6 +3,8 @@
 Todo valor "mágico" vive acá para poder ajustarlo sin tocar la lógica.
 """
 
+import os
+
 # --- Ventana ---
 ANCHO = 960
 ALTO = 540
@@ -80,10 +82,22 @@ NOMBRES_PARECIDOS = {
 MASCOTAS = ["gato", "perro", "canario", "loro", "conejo", "pez"]
 
 # --- Sonidos ---
-import os
-
 RUTA_BASE = os.path.dirname(os.path.abspath(__file__))
 SONIDOS_CARPETA = os.path.join(RUTA_BASE, "sonidos")
 NOMBRES_SONIDOS = ["timbre", "acierto", "error", "susto"]
 FRECUENCIA_MUESTREO = 44100    # muestras por segundo de los .wav
 VOLUMEN = 0.6                  # volumen de reproducción (0.0 a 1.0)
+
+# --- Paciencia (giro propio) ---
+PACIENCIA_BASE = 12.0          # segundos que espera el primer visitante
+PACIENCIA_MIN = 5.0            # nunca espera menos que esto
+PACIENCIA_REDUCCION = 0.5      # segundos que se restan por cada acierto seguido
+PACIENCIA_MEDIA = 0.6          # debajo de esta fracción la barra se pone amarilla
+PACIENCIA_ALERTA = 0.3         # debajo de esta fracción se pone roja y tiembla
+BARRA_ANCHO = 70
+BARRA_ALTO = 8
+COLOR_BARRA_FONDO = (60, 60, 80)
+COLOR_PACIENCIA_ALTA = (90, 200, 120)
+COLOR_PACIENCIA_MEDIA = (230, 200, 80)
+COLOR_PACIENCIA_BAJA = (220, 80, 80)
+COLOR_OJOS_ALERTA = (255, 40, 40)

@@ -1,7 +1,8 @@
-"""Portero de Medianoche - paso 4: sonidos.
+"""Portero de Medianoche - paso 5: temporizador de paciencia (giro propio).
 
 Cada visitante camina hasta la puerta. El jugador compara su aspecto y lo
 que dice con el libro de residentes y decide: A = permitir, R = rechazar.
+Si tarda demasiado, el visitante se impacienta y se pierde una vida.
 Al perder todas las vidas aparece la pantalla de fin; ENTER reinicia.
 """
 
@@ -10,7 +11,7 @@ import pygame
 import ajustes as aj
 from utilidades import (generar_visitante, decision_correcta,
                         calcular_puntaje, armar_mensaje, nueva_partida,
-                        cargar_sonidos)
+                        cargar_sonidos, calcular_paciencia)
 
 
 def dibujar_libro(pantalla, fuente, fuente_chica):
@@ -68,6 +69,7 @@ def main():
     corriendo = True
     while corriendo:
         dt = reloj.tick(aj.FPS) / 1000
+        decision = None   # None = nadie decidió; True = permitir; False = rechazar
 
         # 1) EVENTOS
         for evento in pygame.event.get():
@@ -83,35 +85,44 @@ def main():
                         estado = aj.ESTADO_JUGANDO
                 elif visitante.llego() and evento.key in (pygame.K_a,
                                                           pygame.K_r):
-                    permitir = evento.key == pygame.K_a
-                    acerto = decision_correcta(visitante, permitir)
-                    mensaje = armar_mensaje(visitante, acerto)
-                    if acerto:
-                        puntaje = calcular_puntaje(puntaje, True, racha)
-                        racha += 1
-                        color_mensaje = aj.COLOR_ACIERTO
-                        sonidos["acierto"].play()
-                    else:
-                        vidas -= 1
-                        racha = 0
-                        color_mensaje = aj.COLOR_ERROR
-                        sonidos["error"].play()
-                    if vidas <= 0:
-                        estado = aj.ESTADO_FIN
-                        sonidos["susto"].play()
-                    else:
-                        visitante = generar_visitante()
+                    decision = evento.key == pygame.K_a
 
         # 2) ACTUALIZAR
+        tiempo_agotado = False
         if estado == aj.ESTADO_JUGANDO:
             if visitante.actualizar(dt):   # True al llegar a la puerta
                 sonidos["timbre"].play()
+            if decision is None and visitante.esperar(dt):
+                tiempo_agotado = True
 
-        # 3) DIBUJAR
+        # 3) RESOLVER: una decisión del jugador o se acabó la paciencia
+        if decision is not None or tiempo_agotado:
+            acerto = (not tiempo_agotado) and decision_correcta(visitante,
+                                                                decision)
+            mensaje = armar_mensaje(visitante, acerto, tiempo_agotado)
+            if acerto:
+                puntaje = calcular_puntaje(puntaje, True, racha)
+                racha += 1
+                color_mensaje = aj.COLOR_ACIERTO
+                sonidos["acierto"].play()
+            else:
+                vidas -= 1
+                racha = 0
+                color_mensaje = aj.COLOR_ERROR
+                sonidos["error"].play()
+            if vidas <= 0:
+                estado = aj.ESTADO_FIN
+                sonidos["susto"].play()
+            else:
+                # el siguiente visitante tiene menos paciencia si hay racha
+                visitante = generar_visitante(calcular_paciencia(racha))
+
+        # 4) DIBUJAR
         pantalla.fill(aj.COLOR_FONDO)
         pygame.draw.rect(pantalla, aj.COLOR_PARED, (0, 0, aj.ANCHO, aj.SUELO_Y))
         pygame.draw.rect(pantalla, aj.COLOR_PUERTA, aj.PUERTA_RECT)
         visitante.dibujar(pantalla)
+        visitante.dibujar_paciencia(pantalla)
         dibujar_libro(pantalla, fuente, fuente_chica)
         if visitante.llego():
             dibujar_ficha(pantalla, fuente, visitante)

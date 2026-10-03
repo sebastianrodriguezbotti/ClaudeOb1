@@ -17,12 +17,13 @@ def _texto_rasgo(nombre_rasgo, valor):
     return "con bigote" if valor else "sin bigote"
 
 
-def generar_visitante():
+def generar_visitante(paciencia=aj.PACIENCIA_BASE):
     """Crea un visitante al azar, humano o impostor.
 
     Un humano coincide en todo con el libro de residentes.
     Un impostor tiene UNA inconsistencia: nombre, apartamento,
     un rasgo físico o algo que dice (la mascota).
+    'paciencia' son los segundos que espera frente a la puerta.
     """
     apto = random.choice(list(aj.RESIDENTES))
     datos = aj.RESIDENTES[apto]
@@ -31,7 +32,8 @@ def generar_visitante():
     bigote, mascota = datos["bigote"], datos["mascota"]
 
     if random.random() >= aj.PROB_IMPOSTOR:
-        return Visitante(nombre, apto, pelo, lentes, bigote, mascota, False)
+        return Visitante(nombre, apto, pelo, lentes, bigote, mascota, False,
+                         paciencia=paciencia)
 
     tipo = random.choice(["nombre", "apartamento", "rasgo", "dicho"])
     motivo = ""
@@ -56,7 +58,8 @@ def generar_visitante():
     else:
         mascota = random.choice([m for m in aj.MASCOTAS if m != mascota])
         motivo = f"Dijo tener un {mascota}; el libro dice {datos['mascota']}"
-    return Visitante(nombre, apto, pelo, lentes, bigote, mascota, True, motivo)
+    return Visitante(nombre, apto, pelo, lentes, bigote, mascota, True,
+                     motivo, paciencia)
 
 
 def decision_correcta(visitante, permitir):
@@ -78,8 +81,20 @@ def calcular_puntaje(puntaje, acerto, racha):
     return puntaje
 
 
-def armar_mensaje(visitante, acerto):
+def calcular_paciencia(racha):
+    """Devuelve los segundos de paciencia del próximo visitante.
+
+    Cada acierto seguido le quita un poco de tiempo (más difícil),
+    pero nunca baja del mínimo.
+    """
+    return max(aj.PACIENCIA_MIN,
+               aj.PACIENCIA_BASE - aj.PACIENCIA_REDUCCION * racha)
+
+
+def armar_mensaje(visitante, acerto, tiempo_agotado=False):
     """Devuelve el texto de resultado que se muestra tras decidir."""
+    if tiempo_agotado:
+        return "¡Tiempo! El visitante se impacientó"
     if acerto and not visitante.es_impostor:
         return "¡Bien!"
     prefijo = "¡Bien!" if acerto else "¡Error!"
