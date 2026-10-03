@@ -1,4 +1,4 @@
-"""Esta noche no - paso 6: menú, configuración y tres niveles.
+"""Esta noche no - paso 7: imágenes (fondos y visitantes).
 
 Estados: menú, instrucciones, objetivo, configuración, jugando,
 nivel completo, fin y victoria. Se maneja con el mouse (botones) y con
@@ -12,7 +12,7 @@ from interfaz import Deslizador, punto_en_engranaje
 from pantallas import (crear_botones, dibujar_menu, dibujar_texto,
                        dibujar_config, dibujar_juego, dibujar_pantalla_final)
 from partida import Partida
-from utilidades import cargar_sonidos, aplicar_volumen
+from utilidades import cargar_sonidos, cargar_imagenes, aplicar_volumen
 
 
 def main():
@@ -33,6 +33,7 @@ def main():
     velo = pygame.Surface((aj.ANCHO, aj.ALTO))   # fondo oscuro de los carteles
     velo.set_alpha(190)
     velo.fill((0, 0, 0))
+    imagenes = cargar_imagenes()
     sonidos = cargar_sonidos()
     ui = crear_botones()
     deslizador = Deslizador(aj.SLIDER_X, aj.SLIDER_Y, aj.SLIDER_ANCHO,
@@ -145,17 +146,20 @@ def main():
         # 4) DIBUJAR
         pantalla.fill(aj.COLOR_FONDO)
         if estado == aj.ESTADO_MENU:
-            dibujar_menu(pantalla, fuentes, ui, pos_mouse)
+            dibujar_menu(pantalla, fuentes, ui, pos_mouse, imagenes)
         elif estado == aj.ESTADO_INSTRUCCIONES:
             dibujar_texto(pantalla, fuentes, "INSTRUCCIONES",
-                          aj.TEXTO_INSTRUCCIONES)
+                          aj.TEXTO_INSTRUCCIONES, imagenes)
         elif estado == aj.ESTADO_OBJETIVO:
-            dibujar_texto(pantalla, fuentes, "OBJETIVO", aj.TEXTO_OBJETIVO)
+            dibujar_texto(pantalla, fuentes, "OBJETIVO", aj.TEXTO_OBJETIVO,
+                          imagenes)
         elif estado == aj.ESTADO_CONFIG:
-            dibujar_config(pantalla, fuentes, ui, deslizador, pos_mouse)
+            dibujar_config(pantalla, fuentes, ui, deslizador, pos_mouse,
+                           imagenes)
         else:
             jugando = estado == aj.ESTADO_JUGANDO
-            dibujar_juego(pantalla, partida, fuentes, ui, pos_mouse, jugando)
+            dibujar_juego(pantalla, partida, fuentes, ui, pos_mouse, jugando,
+                          imagenes)
             if not jugando:
                 dibujar_pantalla_final(pantalla, velo, estado, partida,
                                        fuentes, ui, pos_mouse)

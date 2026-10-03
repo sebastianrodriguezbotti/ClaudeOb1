@@ -13,23 +13,23 @@ from visitante import Visitante
 def generar_visitante(paciencia=aj.PACIENCIA_BASE, nivel=aj.NIVELES[0]):
     """Crea un visitante al azar, humano o impostor, según el nivel.
 
-    'nivel' define cuántos vecinos hay, qué tan seguido aparecen impostores
-    y qué tipos de inconsistencia pueden tener. 'paciencia' son los
-    segundos que espera frente a la puerta.
+    El personaje (sus imágenes) lo define el vecino real elegido. Un
+    impostor usa las imágenes de "impostor" y, además, tiene UNA
+    inconsistencia: nombre, apartamento, algo que dice (la mascota) o
+    solo el aspecto ("rasgo").
     """
     apartamentos = list(aj.RESIDENTES)[:nivel["residentes"]]
     apto = random.choice(apartamentos)
     datos = aj.RESIDENTES[apto]
     nombre = datos["nombre"]
-    pelo, lentes = datos["pelo"], datos["lentes"]
-    bigote, mascota = datos["bigote"], datos["mascota"]
+    mascota = datos["mascota"]
+    imagen_id = datos["imagen"]
 
     if random.random() >= nivel["prob_impostor"]:
-        return Visitante(nombre, apto, pelo, lentes, bigote, mascota, False,
+        return Visitante(nombre, apto, imagen_id, mascota, False,
                          paciencia=paciencia)
 
     tipo = random.choice(nivel["tipos"])
-    motivo = ""
     if tipo == "nombre":
         nombre = aj.NOMBRES_PARECIDOS[apto]
         motivo = f"Su nombre estaba mal: es {datos['nombre']}"
@@ -38,23 +38,12 @@ def generar_visitante(paciencia=aj.PACIENCIA_BASE, nivel=aj.NIVELES[0]):
         apto = random.choice([a for a in apartamentos if a != real])
         motivo = f"{nombre} vive en el {real}, no en el {apto}"
     elif tipo == "rasgo":
-        rasgo = random.choice(["pelo", "lentes", "bigote"])
-        if rasgo == "pelo":
-            pelo = random.choice([p for p in aj.COLORES_PELO if p != pelo])
-            motivo = f"Tenía pelo {pelo}; el libro dice {datos['pelo']}"
-        elif rasgo == "lentes":
-            lentes = not lentes
-            motivo = ("Tenía lentes y el libro no los menciona" if lentes
-                      else "No tenía lentes y el libro dice que sí")
-        else:
-            bigote = not bigote
-            motivo = ("Tenía bigote y el libro no lo menciona" if bigote
-                      else "No tenía bigote y el libro dice que sí")
+        motivo = f"Su aspecto no era el de {datos['nombre']}"
     else:
         mascota = random.choice([m for m in aj.MASCOTAS if m != mascota])
         motivo = f"Dijo tener un {mascota}; el libro dice {datos['mascota']}"
-    return Visitante(nombre, apto, pelo, lentes, bigote, mascota, True,
-                     motivo, paciencia)
+    return Visitante(nombre, apto, imagen_id, mascota, True, motivo,
+                     paciencia)
 
 
 def decision_correcta(visitante, permitir):
@@ -126,3 +115,67 @@ def aplicar_volumen(sonidos, volumen, activo):
     for sonido in sonidos.values():
         sonido.set_volume(efectivo)
     return efectivo
+
+
+def _ruta_imagen(base):
+    """Busca imagenes/<base> con alguna extensión. Devuelve la ruta o None."""
+    for extension in aj.EXTENSIONES_IMAGEN:
+        ruta = os.path.join(aj.IMAGENES_CARPETA, base + extension)
+        if os.path.exists(ruta):
+            return ruta
+    return None
+
+
+def _cargar_imagen(base, color_reemplazo, tamano_reemplazo, faltan):
+    """Carga una imagen; si no existe, devuelve un rectángulo de color.
+
+    Los nombres de las imágenes que faltan se agregan a la lista 'faltan'.
+    """
+    ruta = _ruta_imagen(base)
+    if ruta is None:
+        faltan.append(base)
+        reemplazo = pygame.Surface(tamano_reemplazo, pygame.SRCALPHA)
+        reemplazo.fill(color_reemplazo)
+        return reemplazo
+    return pygame.image.load(ruta).convert_alpha()
+
+
+def _escalar_a_alto(imagen, alto):
+    """Devuelve la imagen escalada a 'alto' píxeles, manteniendo proporción."""
+    ancho = max(1, round(imagen.get_width() * alto / imagen.get_height()))
+    return pygame.transform.smoothscale(imagen, (ancho, alto))
+
+
+def cargar_imagenes():
+    """Carga todas las imágenes UNA vez y las devuelve en un diccionario.
+
+    Estructura: {"fondo1": Surface, "fondo2": Surface,
+                 "visitantes": {imagen_id: {variante: Surface}}}
+    Si falta un archivo usa un reemplazo de color (para que el juego no se
+    rompa) y avisa por consola cuáles faltan.
+    """
+    faltan = []
+    tamano = (aj.ANCHO, aj.ALTO)
+    fondo1 = _cargar_imagen(aj.FONDO_1, (0, 0, 0, 0), tamano, faltan)
+    fondo2 = _cargar_imagen(aj.FONDO_2, aj.COLOR_PARED, tamano, faltan)
+    imagenes = {
+        "fondo1": pygame.transform.smoothscale(fondo1, tamano),
+        "fondo2": pygame.transform.smoothscale(fondo2, tamano),
+        "visitantes": {},
+    }
+    for datos in aj.RESIDENTES.values():
+        prefijo = datos["imagen"]
+        if prefijo in imagenes["visitantes"]:
+            continue
+        variantes = {}
+        for variante in aj.VARIANTES:
+            imagen = _cargar_imagen(
+                f"{prefijo}_{variante}", aj.COLORES_REEMPLAZO[variante],
+                (aj.VISITANTE_IMG_ALTO // 2, aj.VISITANTE_IMG_ALTO), faltan)
+            variantes[variante] = _escalar_a_alto(imagen,
+                                                  aj.VISITANTE_IMG_ALTO)
+        imagenes["visitantes"][prefijo] = variantes
+    if faltan:
+        print(f"[aviso] Faltan {len(faltan)} imágenes en "
+              f"{aj.IMAGENES_CARPETA}: " + ", ".join(faltan))
+    return imagenes

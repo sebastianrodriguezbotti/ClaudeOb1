@@ -26,10 +26,15 @@ def crear_botones():
     }
 
 
-def dibujar_escenario(pantalla):
-    """Dibuja la pared y la puerta del edificio."""
-    pygame.draw.rect(pantalla, aj.COLOR_PARED, (0, 0, aj.ANCHO, aj.SUELO_Y))
-    pygame.draw.rect(pantalla, aj.COLOR_PUERTA, aj.PUERTA_RECT)
+def dibujar_escenario(pantalla, imagenes, visitante=None):
+    """Dibuja las capas de atrás hacia adelante.
+
+    Orden: fondo2 (atrás), visitante (en el medio, si hay) y fondo1 (adelante).
+    """
+    pantalla.blit(imagenes["fondo2"], (0, 0))
+    if visitante is not None:
+        visitante.dibujar(pantalla, imagenes)
+    pantalla.blit(imagenes["fondo1"], (0, 0))
 
 
 def _texto_centrado(pantalla, fuente, texto, color, y):
@@ -38,9 +43,9 @@ def _texto_centrado(pantalla, fuente, texto, color, y):
     pantalla.blit(imagen, imagen.get_rect(center=(aj.ANCHO // 2, y)))
 
 
-def dibujar_menu(pantalla, fuentes, ui, pos_mouse):
+def dibujar_menu(pantalla, fuentes, ui, pos_mouse, imagenes):
     """Dibuja la pantalla inicial: título, botones y engranaje."""
-    dibujar_escenario(pantalla)
+    dibujar_escenario(pantalla, imagenes)
     # el título parpadea de vez en cuando, como una luz fallando
     apagado = (pygame.time.get_ticks() // 90) % 31 == 0
     color = (110, 30, 30) if apagado else aj.COLOR_TITULO
@@ -56,9 +61,9 @@ def dibujar_menu(pantalla, fuentes, ui, pos_mouse):
                     aj.COLOR_SECUNDARIO, 515)
 
 
-def dibujar_texto(pantalla, fuentes, titulo, lineas):
+def dibujar_texto(pantalla, fuentes, titulo, lineas, imagenes):
     """Dibuja una pantalla de ayuda con un título y varias líneas."""
-    dibujar_escenario(pantalla)
+    dibujar_escenario(pantalla, imagenes)
     pygame.draw.rect(pantalla, aj.COLOR_PANEL, (80, 50, 800, 440),
                      border_radius=10)
     _texto_centrado(pantalla, fuentes["grande"], titulo, aj.COLOR_TITULO, 95)
@@ -72,9 +77,9 @@ def dibujar_texto(pantalla, fuentes, titulo, lineas):
                     aj.COLOR_SECUNDARIO, 465)
 
 
-def dibujar_config(pantalla, fuentes, ui, deslizador, pos_mouse):
+def dibujar_config(pantalla, fuentes, ui, deslizador, pos_mouse, imagenes):
     """Dibuja la pantalla de configuración: volumen y sonido."""
-    dibujar_escenario(pantalla)
+    dibujar_escenario(pantalla, imagenes)
     pygame.draw.rect(pantalla, aj.COLOR_PANEL, (200, 70, 560, 400),
                      border_radius=10)
     _texto_centrado(pantalla, fuentes["grande"], "CONFIGURACIÓN",
@@ -118,14 +123,14 @@ def dibujar_ficha(pantalla, fuentes, visitante):
                       (30, 430 + i * 26))
 
 
-def dibujar_juego(pantalla, partida, fuentes, ui, pos_mouse, activo):
+def dibujar_juego(pantalla, partida, fuentes, ui, pos_mouse, activo,
+                  imagenes):
     """Dibuja la escena de juego completa.
 
     'activo' indica si se puede decidir (muestra los botones de decisión).
     """
-    dibujar_escenario(pantalla)
     visitante = partida.visitante
-    visitante.dibujar(pantalla)
+    dibujar_escenario(pantalla, imagenes, visitante)   # fondo2, visitante, fondo1
     visitante.dibujar_paciencia(pantalla)
     nivel = partida.config_nivel()
     dibujar_libro(pantalla, fuentes, nivel)

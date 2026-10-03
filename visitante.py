@@ -12,33 +12,30 @@ class Visitante:
 
     Atributos:
         nombre, apartamento: lo que dice ser y adónde dice ir.
-        pelo, lentes, bigote: rasgos físicos que se ven en el dibujo.
+        imagen_id: prefijo de sus imágenes (qué personaje es).
         mascota: lo que cuenta sobre su mascota.
         es_impostor: True si es un monstruo disfrazado.
         motivo: qué lo delata (None si es humano).
         paciencia_max / paciencia: segundos totales y restantes de espera.
+        x: centro horizontal de la imagen (float para moverse suave).
+        rect: rectángulo donde se dibujó la imagen por última vez.
     """
 
-    def __init__(self, nombre, apartamento, pelo, lentes, bigote, mascota,
-                 es_impostor, motivo=None, paciencia=aj.PACIENCIA_BASE):
+    def __init__(self, nombre, apartamento, imagen_id, mascota, es_impostor,
+                 motivo=None, paciencia=aj.PACIENCIA_BASE):
         """Crea el visitante con sus datos y lo ubica fuera de pantalla."""
         self.nombre = nombre
         self.apartamento = apartamento
-        self.pelo = pelo
-        self.lentes = lentes
-        self.bigote = bigote
+        self.imagen_id = imagen_id
         self.mascota = mascota
         self.es_impostor = es_impostor
         self.motivo = motivo
         self.paciencia_max = paciencia
         self.paciencia = paciencia
-        self.x = float(aj.VISITANTE_X_INICIAL)  # float: movimiento suave
-        self.rect = pygame.Rect(
-            aj.VISITANTE_X_INICIAL,
-            aj.SUELO_Y - aj.CUERPO_ALTO,
-            aj.CUERPO_ANCHO,
-            aj.CUERPO_ALTO,
-        )
+        self.x = float(aj.VISITANTE_X_INICIAL)
+        self.rect = pygame.Rect(int(self.x),
+                                aj.VISITANTE_BASE_Y - aj.VISITANTE_IMG_ALTO,
+                                1, aj.VISITANTE_IMG_ALTO)
 
     def actualizar(self, dt):
         """Hace caminar al visitante hasta la puerta (dt en segundos).
@@ -49,7 +46,6 @@ class Visitante:
         if not ya_estaba:
             self.x = min(self.x + aj.VISITANTE_VELOCIDAD * dt,
                          aj.VISITANTE_X_DESTINO)
-        self.rect.x = int(self.x)
         return (not ya_estaba) and self.llego()
 
     def llego(self):
@@ -74,6 +70,14 @@ class Visitante:
         """Devuelve True si ya llegó y le queda poca paciencia."""
         return self.llego() and self.fraccion_paciencia() < aj.PACIENCIA_ALERTA
 
+    def variante(self):
+        """Devuelve cuál de las 4 imágenes corresponde ahora.
+
+        "normal", "normal_enojado", "impostor" o "impostor_enojado".
+        """
+        base = "impostor" if self.es_impostor else "normal"
+        return base + "_enojado" if self.impaciente() else base
+
     def frases(self):
         """Devuelve la lista de cosas que dice el visitante."""
         return [
@@ -81,38 +85,19 @@ class Visitante:
             f"Vengo a darle de comer a mi {self.mascota}.",
         ]
 
-    def dibujar(self, pantalla):
-        """Dibuja cuerpo, cabeza y rasgos. Si está impaciente, tiembla."""
-        radio = aj.CABEZA_RADIO
-        impaciente = self.impaciente()
-        sacudida = 0
-        if impaciente:
-            sacudida = int(3 * math.sin(pygame.time.get_ticks() / 30))
-        rect = self.rect.move(sacudida, 0)
-        cx = rect.centerx
-        cy = rect.top - radio + 4
+    def dibujar(self, pantalla, imagenes):
+        """Dibuja la imagen del visitante apoyada en VISITANTE_BASE_Y.
 
-        pygame.draw.rect(pantalla, aj.COLOR_CUERPO, rect)
-        pygame.draw.circle(pantalla, aj.COLOR_PIEL, (cx, cy), radio)
-        # Pelo: una elipse sobre la parte de arriba de la cabeza
-        pygame.draw.ellipse(pantalla, aj.COLORES_PELO[self.pelo],
-                            (cx - radio - 1, cy - radio - 4,
-                             2 * radio + 2, radio + 2))
-        # Ojos: se ponen rojos y más grandes cuando se impacienta
-        color_ojos = aj.COLOR_OJOS_ALERTA if impaciente else aj.COLOR_LENTES
-        radio_ojo = 3 if impaciente else 2
-        for dx in (-8, 8):
-            pygame.draw.circle(pantalla, color_ojos, (cx + dx, cy + 2),
-                               radio_ojo)
-        if self.lentes:
-            for dx in (-8, 8):
-                pygame.draw.circle(pantalla, aj.COLOR_LENTES,
-                                   (cx + dx, cy + 2), 7, 2)
-            pygame.draw.line(pantalla, aj.COLOR_LENTES,
-                             (cx - 1, cy + 2), (cx + 1, cy + 2), 2)
-        if self.bigote:
-            pygame.draw.rect(pantalla, aj.COLOR_BIGOTE,
-                             (cx - 9, cy + 10, 18, 4))
+        Si está enojado, además tiembla un poco.
+        """
+        imagen = imagenes["visitantes"][self.imagen_id][self.variante()]
+        sacudida = 0
+        if self.impaciente():
+            sacudida = int(aj.SACUDIDA_ENOJADO
+                           * math.sin(pygame.time.get_ticks() / 30))
+        self.rect = imagen.get_rect(
+            midbottom=(int(self.x) + sacudida, aj.VISITANTE_BASE_Y))
+        pantalla.blit(imagen, self.rect)
 
     def dibujar_paciencia(self, pantalla):
         """Dibuja la barra de paciencia sobre la cabeza (solo si ya llegó)."""
@@ -125,8 +110,8 @@ class Visitante:
             color = aj.COLOR_PACIENCIA_MEDIA
         else:
             color = aj.COLOR_PACIENCIA_BAJA
-        x = self.rect.centerx - aj.BARRA_ANCHO // 2
-        y = self.rect.top - 2 * aj.CABEZA_RADIO - 16
+        x = int(self.x) - aj.BARRA_ANCHO // 2
+        y = self.rect.top - 16
         pygame.draw.rect(pantalla, aj.COLOR_BARRA_FONDO,
                          (x - 1, y - 1, aj.BARRA_ANCHO + 2, aj.BARRA_ALTO + 2))
         pygame.draw.rect(pantalla, color,
