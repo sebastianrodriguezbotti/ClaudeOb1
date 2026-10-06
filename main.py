@@ -1,8 +1,9 @@
-"""Esta noche no - paso 7: imágenes (fondos y visitantes).
+"""Esta noche no - paso 8: documento y foto arrastrables, y pausa.
 
-Estados: menú, instrucciones, objetivo, configuración, jugando,
-nivel completo, fin y victoria. Se maneja con el mouse (botones) y con
-el teclado (A = permitir, R = rechazar, ENTER = continuar, ESC = volver).
+Estados: menú, instrucciones, objetivo, configuración, jugando, pausa,
+nivel completo, fin y victoria. Se maneja con el mouse (botones, clic en el
+visitante, arrastrar papeles) y con el teclado (A = permitir, R = rechazar,
+ENTER = continuar, ESC = pausa / volver).
 """
 
 import pygame
@@ -10,9 +11,64 @@ import pygame
 import ajustes as aj
 from interfaz import Deslizador, punto_en_engranaje
 from pantallas import (crear_botones, dibujar_menu, dibujar_texto,
-                       dibujar_config, dibujar_juego, dibujar_pantalla_final)
+                       dibujar_config, dibujar_juego, dibujar_pausa,
+                       dibujar_pantalla_final)
 from partida import Partida
 from utilidades import cargar_sonidos, cargar_imagenes, aplicar_volumen
+
+
+def manejar_evento_juego(evento, clic, tecla, partida, ui, sonidos):
+    """Procesa un evento mientras se juega.
+
+    Devuelve (decision, pausa): decision es True (permitir), False
+    (rechazar) o None; pausa es True si se apretó el botón de pausa.
+    """
+    visitante = partida.visitante
+
+    # 1) Documento y foto: el que está arriba tiene prioridad
+    for objeto in list(reversed(partida.objetos)):
+        accion = objeto.manejar_evento(evento)
+        if accion == "agarrado":
+            partida.traer_al_frente(objeto)
+            return None, False
+        if accion == "movido":
+            return None, False
+        if accion == "soltado":
+            if visitante.rect.collidepoint(evento.pos):   # soltado sobre él
+                partida.devolver(objeto)
+                sonidos["papel"].play()
+            return None, False
+
+    # 2) Clics
+    if clic:
+        if partida.menu_abierto:
+            for tipo in partida.opciones_disponibles():
+                if ui[f"pedir_{tipo}"].bajo_mouse(clic):
+                    partida.pedir(tipo)
+                    sonidos["papel"].play()
+                    return None, False
+            partida.menu_abierto = False        # clic en otro lado: se cierra
+            if visitante.rect.collidepoint(clic):
+                return None, False
+        if ui["pausa"].bajo_mouse(clic):
+            return None, True
+        if visitante.llego():
+            if ui["permitir"].bajo_mouse(clic):
+                return True, False
+            if ui["rechazar"].bajo_mouse(clic):
+                return False, False
+            if (visitante.rect.collidepoint(clic)
+                    and partida.opciones_disponibles()):
+                partida.menu_abierto = True
+        return None, False
+
+    # 3) Teclado
+    if visitante.llego():
+        if tecla == pygame.K_a:
+            return True, False
+        if tecla == pygame.K_r:
+            return False, False
+    return None, False
 
 
 def main():
@@ -43,6 +99,7 @@ def main():
 
     # --- Estado ---
     estado = aj.ESTADO_MENU
+    origen = aj.ESTADO_MENU   # a dónde vuelven instrucciones y configuración
     partida = Partida()
 
     corriendo = True
@@ -64,6 +121,14 @@ def main():
             elif tecla == pygame.K_ESCAPE:
                 if estado == aj.ESTADO_MENU:
                     corriendo = False
+                elif estado == aj.ESTADO_JUGANDO:
+                    partida.soltar_todo()
+                    estado = aj.ESTADO_PAUSA
+                elif estado == aj.ESTADO_PAUSA:
+                    estado = aj.ESTADO_JUGANDO
+                elif estado in (aj.ESTADO_INSTRUCCIONES, aj.ESTADO_OBJETIVO,
+                                aj.ESTADO_CONFIG):
+                    estado = origen
                 else:
                     estado = aj.ESTADO_MENU
 
@@ -73,16 +138,16 @@ def main():
                     partida = Partida()
                     estado = aj.ESTADO_JUGANDO
                 elif clic and ui["instrucciones"].bajo_mouse(clic):
-                    estado = aj.ESTADO_INSTRUCCIONES
+                    origen, estado = aj.ESTADO_MENU, aj.ESTADO_INSTRUCCIONES
                 elif clic and ui["objetivo"].bajo_mouse(clic):
-                    estado = aj.ESTADO_OBJETIVO
+                    origen, estado = aj.ESTADO_MENU, aj.ESTADO_OBJETIVO
                 elif clic and punto_en_engranaje(clic):
                     deslizador.arrastrando = False
-                    estado = aj.ESTADO_CONFIG
+                    origen, estado = aj.ESTADO_MENU, aj.ESTADO_CONFIG
 
             elif estado in (aj.ESTADO_INSTRUCCIONES, aj.ESTADO_OBJETIVO):
                 if clic or tecla:            # clic o cualquier tecla: volver
-                    estado = aj.ESTADO_MENU
+                    estado = origen
 
             elif estado == aj.ESTADO_CONFIG:
                 accion = deslizador.manejar_evento(evento)
@@ -97,16 +162,27 @@ def main():
                     aplicar_volumen(sonidos, deslizador.valor, sonido_activo)
                 elif (clic and ui["volver"].bajo_mouse(clic)) or \
                         tecla == pygame.K_RETURN:
-                    estado = aj.ESTADO_MENU
+                    estado = origen
 
             elif estado == aj.ESTADO_JUGANDO:
-                if partida.visitante.llego():
-                    if tecla == pygame.K_a or (
-                            clic and ui["permitir"].bajo_mouse(clic)):
-                        decision = True
-                    elif tecla == pygame.K_r or (
-                            clic and ui["rechazar"].bajo_mouse(clic)):
-                        decision = False
+                quedo, pausa = manejar_evento_juego(evento, clic, tecla,
+                                                    partida, ui, sonidos)
+                if quedo is not None:
+                    decision = quedo
+                if pausa:
+                    partida.soltar_todo()
+                    estado = aj.ESTADO_PAUSA
+
+            elif estado == aj.ESTADO_PAUSA:
+                if clic and ui["p_continuar"].bajo_mouse(clic):
+                    estado = aj.ESTADO_JUGANDO
+                elif clic and ui["p_instrucciones"].bajo_mouse(clic):
+                    origen, estado = aj.ESTADO_PAUSA, aj.ESTADO_INSTRUCCIONES
+                elif clic and ui["p_volumen"].bajo_mouse(clic):
+                    deslizador.arrastrando = False
+                    origen, estado = aj.ESTADO_PAUSA, aj.ESTADO_CONFIG
+                elif clic and ui["p_inicio"].bajo_mouse(clic):
+                    estado = aj.ESTADO_MENU
 
             elif estado == aj.ESTADO_NIVEL_COMPLETO:
                 if tecla == pygame.K_RETURN or (
@@ -124,9 +200,14 @@ def main():
                 elif clic and ui["menu"].bajo_mouse(clic):
                     estado = aj.ESTADO_MENU
 
-        # 2) ACTUALIZAR (solo mientras se juega)
+        # 2) ACTUALIZAR (solo mientras se juega: en pausa todo queda quieto)
         if estado == aj.ESTADO_JUGANDO:
             visitante = partida.visitante
+            # un vecino de verdad no te deja decidir sin sus cosas
+            if decision is not None and not partida.puede_decidir():
+                partida.exigir_devolucion()
+                sonidos["error"].play()
+                decision = None
             if visitante.actualizar(dt):   # True al llegar a la puerta
                 sonidos["timbre"].play()
             tiempo_agotado = decision is None and visitante.esperar(dt)
@@ -160,7 +241,9 @@ def main():
             jugando = estado == aj.ESTADO_JUGANDO
             dibujar_juego(pantalla, partida, fuentes, ui, pos_mouse, jugando,
                           imagenes)
-            if not jugando:
+            if estado == aj.ESTADO_PAUSA:
+                dibujar_pausa(pantalla, velo, fuentes, ui, pos_mouse)
+            elif not jugando:
                 dibujar_pantalla_final(pantalla, velo, estado, partida,
                                        fuentes, ui, pos_mouse)
 

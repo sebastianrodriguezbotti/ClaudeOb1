@@ -42,6 +42,17 @@ def _barrido(f_inicio, f_fin, duracion, ruido=0.3, volumen=0.6):
     return muestras
 
 
+def _ruido(duracion, volumen=0.5):
+    """Devuelve un ruido suave que se apaga rápido (como un papel)."""
+    total = int(aj.FRECUENCIA_MUESTREO * duracion)
+    muestras = []
+    anterior = 0.0
+    for i in range(total):
+        anterior = 0.6 * anterior + 0.4 * random.uniform(-1, 1)  # suaviza
+        muestras.append(anterior * volumen * (1 - i / total) ** 2)
+    return muestras
+
+
 def _guardar(nombre, muestras):
     """Escribe las muestras (entre -1 y 1) en sonidos/<nombre>.wav."""
     os.makedirs(aj.SONIDOS_CARPETA, exist_ok=True)
@@ -57,12 +68,13 @@ def _guardar(nombre, muestras):
 
 
 def generar_todos():
-    """Crea los cuatro sonidos del juego."""
+    """Crea todos los sonidos del juego."""
     random.seed(7)  # el ruido sale igual cada vez
     _guardar("timbre", _onda(660, 0.35) + _onda(520, 0.6))
     _guardar("acierto", _onda(523, 0.1) + _onda(659, 0.1) + _onda(784, 0.25))
     _guardar("error", _onda(110, 0.5, tipo="cuadrada", volumen=0.4))
     _guardar("susto", _barrido(900, 70, 1.1))
+    _guardar("papel", _ruido(0.18))
 
 
 if __name__ == "__main__":

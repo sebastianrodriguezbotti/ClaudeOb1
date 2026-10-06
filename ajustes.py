@@ -20,6 +20,7 @@ ESTADO_INSTRUCCIONES = "instrucciones"
 ESTADO_OBJETIVO = "objetivo"
 ESTADO_CONFIG = "config"
 ESTADO_JUGANDO = "jugando"
+ESTADO_PAUSA = "pausa"
 ESTADO_NIVEL_COMPLETO = "nivel_completo"
 ESTADO_FIN = "fin"
 ESTADO_VICTORIA = "victoria"
@@ -40,6 +41,10 @@ COLOR_PERMITIR = (40, 110, 70)
 COLOR_PERMITIR_HOVER = (60, 150, 95)
 COLOR_RECHAZAR = (130, 45, 45)
 COLOR_RECHAZAR_HOVER = (180, 65, 65)
+COLOR_PAPEL = (228, 218, 184)       # documento y foto
+COLOR_TINTA = (35, 30, 25)
+COLOR_FOTO_FONDO = (50, 50, 60)
+COLOR_SOMBRA = (12, 12, 18)
 
 # --- Imágenes (carpeta "imagenes" junto a main.py) ---
 # Se escriben SIN extensión: se busca .png, .jpg, .jpeg o .webp.
@@ -64,6 +69,15 @@ VISITANTE_VELOCIDAD = 220      # píxeles por segundo al entrar
 VISITANTE_X_INICIAL = -250     # centro horizontal al empezar (fuera de pantalla)
 VISITANTE_X_DESTINO = ANCHO // 2   # centro horizontal frente a la puerta
 SACUDIDA_ENOJADO = 3           # cuánto tiembla cuando está enojado (0 = no tiembla)
+
+# --- Documento y foto (se piden clickeando al visitante) ---
+TIPOS_OBJETO = ("documento", "foto")
+TEXTO_OBJETO = {"documento": "mi documento", "foto": "mi foto"}
+OBJETO_TAMANOS = {"documento": (220, 120), "foto": (130, 160)}   # ancho, alto
+OBJETO_SPAWN = {"documento": (170, 330), "foto": (170, 185)}     # centro donde aparecen
+FOTO_CAJA = (110, 130)         # espacio del retrato dentro de la foto
+# ¿Los impostores también exigen que les devuelvas sus cosas antes de decidir?
+IMPOSTOR_EXIGE_DEVOLUCION = False
 
 # --- Reglas generales ---
 VIDAS_INICIALES = 3            # vidas al empezar CADA noche
@@ -133,7 +147,7 @@ MASCOTAS = ["gato", "perro", "canario", "loro", "conejo", "pez"]
 
 # --- Sonidos ---
 SONIDOS_CARPETA = os.path.join(RUTA_BASE, "sonidos")
-NOMBRES_SONIDOS = ["timbre", "acierto", "error", "susto"]
+NOMBRES_SONIDOS = ["timbre", "acierto", "error", "susto", "papel"]
 FRECUENCIA_MUESTREO = 44100    # muestras por segundo de los .wav
 VOLUMEN = 0.6                  # volumen inicial (0.0 a 1.0)
 
@@ -150,12 +164,15 @@ SLIDER_ANCHO = 480
 TEXTO_INSTRUCCIONES = [
     "Un visitante llega a la puerta y se presenta.",
     "Compará lo que dice y cómo se ve con el libro de residentes.",
+    "Hacé clic en el visitante para pedirle su documento o su foto.",
+    "Podés arrastrarlos por la pantalla para compararlos.",
+    "Antes de decidir, devolvéselos arrastrándolos hasta él.",
     "",
     "Todo coincide:   PERMITIR  (tecla A o clic en el botón verde)",
     "Algo no cuadra:  RECHAZAR  (tecla R o clic en el botón rojo)",
     "",
     "No tardes: la paciencia del visitante se agota.",
-    "ESC vuelve al menú.",
+    "ESC o el botón II pausan el juego.",
 ]
 TEXTO_OBJETIVO = [
     "Sos el portero del edificio y esta noche no podés fallar.",

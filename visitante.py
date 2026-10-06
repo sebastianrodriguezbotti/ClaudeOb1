@@ -17,6 +17,7 @@ class Visitante:
         es_impostor: True si es un monstruo disfrazado.
         motivo: qué lo delata (None si es humano).
         paciencia_max / paciencia: segundos totales y restantes de espera.
+        exigiendo: texto de lo que reclama que le devuelvan ("" si nada).
         x: centro horizontal de la imagen (float para moverse suave).
         rect: rectángulo donde se dibujó la imagen por última vez.
     """
@@ -32,6 +33,7 @@ class Visitante:
         self.motivo = motivo
         self.paciencia_max = paciencia
         self.paciencia = paciencia
+        self.exigiendo = ""   # qué cosas reclama ("mi foto", ...); vacío si nada
         self.x = float(aj.VISITANTE_X_INICIAL)
         self.rect = pygame.Rect(int(self.x),
                                 aj.VISITANTE_BASE_Y - aj.VISITANTE_IMG_ALTO,

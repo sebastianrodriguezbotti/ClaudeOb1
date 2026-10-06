@@ -1,4 +1,4 @@
-"""Dibujo de cada pantalla: menú, ayudas, configuración y partida."""
+"""Dibujo de cada pantalla: menú, ayudas, configuración, partida y pausa."""
 
 import pygame
 
@@ -9,6 +9,7 @@ from interfaz import Boton, dibujar_engranaje, punto_en_engranaje
 def crear_botones():
     """Devuelve un diccionario con todos los botones del juego."""
     cx = aj.ANCHO // 2
+    cx_pedir = aj.VISITANTE_X_DESTINO + 190   # menú que sale al clickear al visitante
     return {
         "jugar": Boton("Jugar", (cx, 240)),
         "instrucciones": Boton("Instrucciones", (cx, 305)),
@@ -19,6 +20,13 @@ def crear_botones():
                           aj.COLOR_PERMITIR, aj.COLOR_PERMITIR_HOVER),
         "rechazar": Boton("RECHAZAR [R]", (875, 470), 150, 50,
                           aj.COLOR_RECHAZAR, aj.COLOR_RECHAZAR_HOVER),
+        "pausa": Boton("II", (618, 30), 36, 36),
+        "pedir_documento": Boton("Pedir documento", (cx_pedir, 290), 200, 38),
+        "pedir_foto": Boton("Pedir foto", (cx_pedir, 336), 200, 38),
+        "p_continuar": Boton("Continuar", (cx, 200)),
+        "p_instrucciones": Boton("Instrucciones", (cx, 262)),
+        "p_volumen": Boton("Volumen", (cx, 324)),
+        "p_inicio": Boton("Volver al inicio", (cx, 386)),
         "siguiente": Boton("Siguiente noche", (cx, 340)),
         "reintentar": Boton("Reintentar", (cx, 340)),
         "de_nuevo": Boton("Jugar de nuevo", (cx, 340)),
@@ -67,11 +75,11 @@ def dibujar_texto(pantalla, fuentes, titulo, lineas, imagenes):
     pygame.draw.rect(pantalla, aj.COLOR_PANEL, (80, 50, 800, 440),
                      border_radius=10)
     _texto_centrado(pantalla, fuentes["grande"], titulo, aj.COLOR_TITULO, 95)
-    y = 150
+    y = 140
     for linea in lineas:
         imagen = fuentes["media"].render(linea, True, aj.COLOR_TEXTO)
         pantalla.blit(imagen, (120, y))
-        y += 30
+        y += 26
     _texto_centrado(pantalla, fuentes["chica"],
                     "Hacé clic o apretá cualquier tecla para volver",
                     aj.COLOR_SECUNDARIO, 465)
@@ -114,20 +122,23 @@ def dibujar_libro(pantalla, fuentes, nivel):
 
 
 def dibujar_ficha(pantalla, fuentes, visitante):
-    """Dibuja lo que dice el visitante y las teclas de decisión."""
-    pygame.draw.rect(pantalla, aj.COLOR_PANEL, (20, 420, 600, 100))
-    lineas = [f"«{f}»" for f in visitante.frases()]
-    lineas.append("[A] Permitir     [R] Rechazar")
-    for i, linea in enumerate(lineas):
-        pantalla.blit(fuentes["normal"].render(linea, True, aj.COLOR_TEXTO),
-                      (30, 430 + i * 26))
+    """Dibuja lo que dice el visitante (o lo que reclama si exige sus cosas)."""
+    pygame.draw.rect(pantalla, aj.COLOR_PANEL, (20, 445, 600, 70))
+    if visitante.exigiendo:
+        lineas = [(f"«¡Devolveme {visitante.exigiendo}!»", aj.COLOR_ERROR),
+                  ("Arrastrá lo que te dio hasta él.", aj.COLOR_SECUNDARIO)]
+    else:
+        lineas = [(f"«{f}»", aj.COLOR_TEXTO) for f in visitante.frases()]
+    for i, (linea, color) in enumerate(lineas):
+        pantalla.blit(fuentes["normal"].render(linea, True, color),
+                      (30, 455 + i * 26))
 
 
 def dibujar_juego(pantalla, partida, fuentes, ui, pos_mouse, activo,
                   imagenes):
     """Dibuja la escena de juego completa.
 
-    'activo' indica si se puede decidir (muestra los botones de decisión).
+    'activo' indica si se puede jugar (muestra botones, menú y pista).
     """
     visitante = partida.visitante
     dibujar_escenario(pantalla, imagenes, visitante)   # fondo2, visitante, fondo1
@@ -150,6 +161,33 @@ def dibujar_juego(pantalla, partida, fuentes, ui, pos_mouse, activo,
         aj.COLOR_SECUNDARIO), (20, 50))
     pantalla.blit(fuentes["normal"].render(partida.mensaje, True,
                                            partida.color_mensaje), (20, 80))
+
+    if activo:
+        ui["pausa"].dibujar(pantalla, fuentes["normal"], pos_mouse)
+    for objeto in partida.objetos:            # arriba de todo lo demás
+        objeto.dibujar(pantalla, fuentes, imagenes)
+    if activo and visitante.llego():
+        if partida.menu_abierto:
+            for tipo in partida.opciones_disponibles():
+                ui[f"pedir_{tipo}"].dibujar(pantalla, fuentes["media"],
+                                            pos_mouse)
+        elif (visitante.rect.collidepoint(pos_mouse)
+              and partida.opciones_disponibles()
+              and not any(o.arrastrando for o in partida.objetos)):
+            # pista junto al mouse
+            pygame.draw.rect(pantalla, aj.COLOR_PANEL,
+                             (pos_mouse[0] + 14, pos_mouse[1] + 14, 250, 22))
+            pantalla.blit(fuentes["chica"].render(
+                "Clic: pedir documento o foto", True, aj.COLOR_TEXTO),
+                (pos_mouse[0] + 20, pos_mouse[1] + 18))
+
+
+def dibujar_pausa(pantalla, velo, fuentes, ui, pos_mouse):
+    """Dibuja el velo oscuro y el menú de pausa."""
+    pantalla.blit(velo, (0, 0))
+    _texto_centrado(pantalla, fuentes["grande"], "PAUSA", aj.COLOR_TITULO, 130)
+    for nombre in ("p_continuar", "p_instrucciones", "p_volumen", "p_inicio"):
+        ui[nombre].dibujar(pantalla, fuentes["media"], pos_mouse)
 
 
 def dibujar_pantalla_final(pantalla, velo, estado, partida, fuentes, ui,

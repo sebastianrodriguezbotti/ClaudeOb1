@@ -146,11 +146,20 @@ def _escalar_a_alto(imagen, alto):
     return pygame.transform.smoothscale(imagen, (ancho, alto))
 
 
+def _ajustar_en_caja(imagen, caja):
+    """Devuelve la imagen escalada para entrar en 'caja' (ancho, alto)."""
+    factor = min(caja[0] / imagen.get_width(), caja[1] / imagen.get_height())
+    tamano = (max(1, round(imagen.get_width() * factor)),
+              max(1, round(imagen.get_height() * factor)))
+    return pygame.transform.smoothscale(imagen, tamano)
+
+
 def cargar_imagenes():
     """Carga todas las imágenes UNA vez y las devuelve en un diccionario.
 
     Estructura: {"fondo1": Surface, "fondo2": Surface,
-                 "visitantes": {imagen_id: {variante: Surface}}}
+                 "visitantes": {imagen_id: {variante: Surface}},
+                 "fotos": {imagen_id: Surface}}   # retrato para la foto
     Si falta un archivo usa un reemplazo de color (para que el juego no se
     rompa) y avisa por consola cuáles faltan.
     """
@@ -162,6 +171,7 @@ def cargar_imagenes():
         "fondo1": pygame.transform.smoothscale(fondo1, tamano),
         "fondo2": pygame.transform.smoothscale(fondo2, tamano),
         "visitantes": {},
+        "fotos": {},
     }
     for datos in aj.RESIDENTES.values():
         prefijo = datos["imagen"]
@@ -175,6 +185,8 @@ def cargar_imagenes():
             variantes[variante] = _escalar_a_alto(imagen,
                                                   aj.VISITANTE_IMG_ALTO)
         imagenes["visitantes"][prefijo] = variantes
+        imagenes["fotos"][prefijo] = _ajustar_en_caja(variantes["normal"],
+                                                      aj.FOTO_CAJA)
     if faltan:
         print(f"[aviso] Faltan {len(faltan)} imágenes en "
               f"{aj.IMAGENES_CARPETA}: " + ", ".join(faltan))

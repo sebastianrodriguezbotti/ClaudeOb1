@@ -1,6 +1,7 @@
 """Clase Partida: guarda el estado de una partida y aplica sus reglas."""
 
 import ajustes as aj
+from objetos import Objeto
 from utilidades import (generar_visitante, decision_correcta,
                         calcular_puntaje, calcular_paciencia, armar_mensaje)
 
@@ -13,7 +14,9 @@ class Partida:
         nivel: índice de la noche actual en aj.NIVELES.
         vidas, racha, atendidos: contadores de la noche actual.
         visitante: el Visitante que está en la puerta.
-        mensaje, color_mensaje: resultado de la última decisión.
+        objetos: documentos y fotos que el jugador tiene en pantalla.
+        menu_abierto: True si se ve el menú "pedir documento / foto".
+        mensaje, color_mensaje: texto de la última decisión o aviso.
     """
 
     def __init__(self):
@@ -36,10 +39,68 @@ class Partida:
         self.siguiente_visitante()
 
     def siguiente_visitante(self):
-        """Genera el próximo visitante con la paciencia que corresponde."""
+        """Genera el próximo visitante y limpia lo que había en pantalla."""
         nivel = self.config_nivel()
         paciencia = calcular_paciencia(self.racha, nivel)
         self.visitante = generar_visitante(paciencia, nivel)
+        self.objetos = []
+        self.menu_abierto = False
+
+    # --- Documento y foto ---
+
+    def opciones_disponibles(self):
+        """Devuelve qué se le puede pedir (lo que todavía no está afuera)."""
+        return [t for t in aj.TIPOS_OBJETO
+                if not any(o.tipo == t for o in self.objetos)]
+
+    def pedir(self, tipo):
+        """El visitante entrega un documento o una foto."""
+        self.objetos.append(Objeto(tipo, self.visitante))
+        self.menu_abierto = False
+
+    def texto_pendientes(self):
+        """Devuelve lo que falta devolver, ej. "mi documento y mi foto"."""
+        return " y ".join(aj.TEXTO_OBJETO[t] for t in aj.TIPOS_OBJETO
+                          if any(o.tipo == t for o in self.objetos))
+
+    def devolver(self, objeto):
+        """El jugador le devuelve el objeto al visitante."""
+        self.objetos.remove(objeto)
+        if self.visitante.exigiendo:
+            if self.objetos:
+                self.visitante.exigiendo = self.texto_pendientes()
+            else:
+                self.visitante.exigiendo = ""
+                self.mensaje = ""
+
+    def traer_al_frente(self, objeto):
+        """Pone el objeto arriba de los demás (se dibuja último)."""
+        self.objetos.remove(objeto)
+        self.objetos.append(objeto)
+
+    def soltar_todo(self):
+        """Cancela arrastres y cierra el menú (al pausar)."""
+        for objeto in self.objetos:
+            objeto.arrastrando = False
+        self.menu_abierto = False
+
+    def puede_decidir(self):
+        """Devuelve False si el visitante exige sus cosas antes de decidir.
+
+        Solo los vecinos de verdad las reclaman (salvo que se active
+        IMPOSTOR_EXIGE_DEVOLUCION en ajustes.py).
+        """
+        if not self.objetos:
+            return True
+        return self.visitante.es_impostor and not aj.IMPOSTOR_EXIGE_DEVOLUCION
+
+    def exigir_devolucion(self):
+        """El visitante reclama lo que todavía no le devolvieron."""
+        self.visitante.exigiendo = self.texto_pendientes()
+        self.mensaje = "¡Exige que le devuelvas sus cosas!"
+        self.color_mensaje = aj.COLOR_ERROR
+
+    # --- Reglas de la noche ---
 
     def resolver(self, decision, tiempo_agotado=False):
         """Aplica el resultado de atender al visitante actual.
