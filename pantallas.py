@@ -9,20 +9,17 @@ from interfaz import Boton, dibujar_engranaje, punto_en_engranaje
 def crear_botones():
     """Devuelve un diccionario con todos los botones del juego."""
     cx = aj.ANCHO // 2
-    cx_pedir = aj.VISITANTE_X_DESTINO + 190   # menú que sale al clickear al visitante
+    cx_pedir = aj.VISITANTE_X_DESTINO + 190   # menú que sale al clickear al empleado
     return {
         "jugar": Boton("Jugar", (cx, 240)),
         "instrucciones": Boton("Instrucciones", (cx, 305)),
         "objetivo": Boton("Objetivo", (cx, 370)),
         "sonido": Boton("Sonido: SÍ", (cx, 320)),
         "volver": Boton("Volver", (cx, 400)),
-        "permitir": Boton("PERMITIR [A]", (715, 470), 150, 50,
-                          aj.COLOR_PERMITIR, aj.COLOR_PERMITIR_HOVER),
-        "rechazar": Boton("RECHAZAR [R]", (875, 470), 150, 50,
-                          aj.COLOR_RECHAZAR, aj.COLOR_RECHAZAR_HOVER),
         "pausa": Boton("II", (618, 30), 36, 36),
-        "pedir_documento": Boton("Pedir documento", (cx_pedir, 290), 200, 38),
-        "pedir_foto": Boton("Pedir foto", (cx_pedir, 336), 200, 38),
+        "pedir_documento": Boton("Pedir documento", (cx_pedir, 290), 230, 38),
+        "pedir_autorizacion": Boton("Pedir autorización", (cx_pedir, 336),
+                                    230, 38),
         "p_continuar": Boton("Continuar", (cx, 200)),
         "p_instrucciones": Boton("Instrucciones", (cx, 262)),
         "p_volumen": Boton("Volumen", (cx, 324)),
@@ -37,7 +34,7 @@ def crear_botones():
 def dibujar_escenario(pantalla, imagenes, visitante=None):
     """Dibuja las capas de atrás hacia adelante.
 
-    Orden: fondo2 (atrás), visitante (en el medio, si hay) y fondo1 (adelante).
+    Orden: fondo2 (atrás), empleado (en el medio, si hay) y fondo1 (adelante).
     """
     pantalla.blit(imagenes["fondo2"], (0, 0))
     if visitante is not None:
@@ -100,33 +97,34 @@ def dibujar_config(pantalla, fuentes, ui, deslizador, pos_mouse, imagenes):
     ui["volver"].dibujar(pantalla, fuentes["media"], pos_mouse)
 
 
-def dibujar_libro(pantalla, fuentes, nivel):
-    """Dibuja el libro con los vecinos de la noche actual."""
+def dibujar_edificio(pantalla, fuentes, nivel):
+    """Dibuja el directorio de la fábrica: qué hay en cada piso."""
     pygame.draw.rect(pantalla, aj.COLOR_PANEL, (640, 10, 310, 255))
-    pantalla.blit(fuentes["normal"].render("LIBRO DE RESIDENTES", True,
-                                           aj.COLOR_TEXTO), (650, 16))
+    pantalla.blit(fuentes["normal"].render("EDIFICIO", True, aj.COLOR_TEXTO),
+                  (650, 16))
+    pisos = {}
+    for datos in aj.EMPLEADOS[:nivel["empleados"]]:
+        lugar = datos["lugar"]
+        pisos.setdefault(aj.LUGARES[lugar]["piso"], []).append(lugar)
     y = 42
-    for apto, d in list(aj.RESIDENTES.items())[:nivel["residentes"]]:
-        rasgos = f"pelo {d['pelo']}"
-        if d["lentes"]:
-            rasgos += ", lentes"
-        if d["bigote"]:
-            rasgos += ", bigote"
-        rasgos += f" · {d['mascota']}"
-        pantalla.blit(fuentes["normal"].render(f"{apto} {d['nombre']}", True,
+    for piso in sorted(pisos):
+        pantalla.blit(fuentes["normal"].render(f"PISO {piso}", True,
                                                aj.COLOR_TEXTO), (650, y))
-        pantalla.blit(fuentes["chica"].render(rasgos, True,
-                                              aj.COLOR_SECUNDARIO),
-                      (650, y + 20))
-        y += 44
+        y += 22
+        for lugar in pisos[piso]:
+            personal = aj.LUGARES[lugar]["personal"]
+            pantalla.blit(fuentes["chica"].render(
+                f"{lugar} ({personal})", True, aj.COLOR_SECUNDARIO),
+                (665, y))
+            y += 19
 
 
 def dibujar_ficha(pantalla, fuentes, visitante):
-    """Dibuja lo que dice el visitante (o lo que reclama si exige sus cosas)."""
+    """Dibuja lo que dice el empleado (o lo que reclama si exige su documento)."""
     pygame.draw.rect(pantalla, aj.COLOR_PANEL, (20, 445, 600, 70))
     if visitante.exigiendo:
         lineas = [(f"«¡Devolveme {visitante.exigiendo}!»", aj.COLOR_ERROR),
-                  ("Arrastrá lo que te dio hasta él.", aj.COLOR_SECUNDARIO)]
+                  ("Arrastralo hasta el empleado.", aj.COLOR_SECUNDARIO)]
     else:
         lineas = [(f"«{f}»", aj.COLOR_TEXTO) for f in visitante.frases()]
     for i, (linea, color) in enumerate(lineas):
@@ -138,18 +136,18 @@ def dibujar_juego(pantalla, partida, fuentes, ui, pos_mouse, activo,
                   imagenes):
     """Dibuja la escena de juego completa.
 
-    'activo' indica si se puede jugar (muestra botones, menú y pista).
+    'activo' indica si se puede jugar (muestra el botón de pausa, el menú
+    de pedidos y la pista).
     """
     visitante = partida.visitante
-    dibujar_escenario(pantalla, imagenes, visitante)   # fondo2, visitante, fondo1
+    dibujar_escenario(pantalla, imagenes, visitante)   # fondo2, empleado, fondo1
     visitante.dibujar_paciencia(pantalla)
     nivel = partida.config_nivel()
-    dibujar_libro(pantalla, fuentes, nivel)
+    dibujar_edificio(pantalla, fuentes, nivel)
     if visitante.llego():
         dibujar_ficha(pantalla, fuentes, visitante)
-        if activo:
-            ui["permitir"].dibujar(pantalla, fuentes["media"], pos_mouse)
-            ui["rechazar"].dibujar(pantalla, fuentes["media"], pos_mouse)
+        pygame.draw.rect(pantalla, aj.COLOR_PANEL, (632, 435, 326, 70),
+                         border_radius=8)             # bandeja de sellos
 
     actual = min(partida.atendidos + 1, nivel["visitantes"])
     pantalla.blit(fuentes["grande"].render(
@@ -157,29 +155,33 @@ def dibujar_juego(pantalla, partida, fuentes, ui, pos_mouse, activo,
         f"Racha: {partida.racha}", True, aj.COLOR_TEXTO), (20, 12))
     pantalla.blit(fuentes["media"].render(
         f"{nivel['nombre']} de {len(aj.NIVELES)} · "
-        f"Visitante {actual}/{nivel['visitantes']}", True,
+        f"Empleado {actual}/{nivel['visitantes']}", True,
         aj.COLOR_SECUNDARIO), (20, 50))
     pantalla.blit(fuentes["normal"].render(partida.mensaje, True,
                                            partida.color_mensaje), (20, 80))
 
     if activo:
         ui["pausa"].dibujar(pantalla, fuentes["normal"], pos_mouse)
-    for objeto in partida.objetos:            # arriba de todo lo demás
+    for objeto in partida.objetos:            # papeles arriba de la escena
         objeto.dibujar(pantalla, fuentes, imagenes)
+    if visitante.llego():
+        for sello in partida.sellos:          # los sellos, arriba de todo
+            sello.dibujar(pantalla, fuentes)
     if activo and visitante.llego():
+        arrastrando = (any(o.arrastrando for o in partida.objetos)
+                       or any(s.arrastrando for s in partida.sellos))
         if partida.menu_abierto:
             for tipo in partida.opciones_disponibles():
                 ui[f"pedir_{tipo}"].dibujar(pantalla, fuentes["media"],
                                             pos_mouse)
         elif (visitante.rect.collidepoint(pos_mouse)
-              and partida.opciones_disponibles()
-              and not any(o.arrastrando for o in partida.objetos)):
+              and partida.opciones_disponibles() and not arrastrando):
             # pista junto al mouse
             pygame.draw.rect(pantalla, aj.COLOR_PANEL,
-                             (pos_mouse[0] + 14, pos_mouse[1] + 14, 250, 22))
+                             (pos_mouse[0] + 14, pos_mouse[1] + 14, 320, 22))
             pantalla.blit(fuentes["chica"].render(
-                "Clic: pedir documento o foto", True, aj.COLOR_TEXTO),
-                (pos_mouse[0] + 20, pos_mouse[1] + 18))
+                "Clic: pedir documento o autorización", True,
+                aj.COLOR_TEXTO), (pos_mouse[0] + 20, pos_mouse[1] + 18))
 
 
 def dibujar_pausa(pantalla, velo, fuentes, ui, pos_mouse):
@@ -200,7 +202,7 @@ def dibujar_pantalla_final(pantalla, velo, estado, partida, fuentes, ui,
         color = aj.COLOR_ACIERTO
         lineas = [f"Puntaje: {partida.puntaje}",
                   "La próxima noche será más difícil:",
-                  "más vecinos y menos paciencia."]
+                  "más puestos en el edificio y menos tiempo."]
         botones = ["siguiente"]
     elif estado == aj.ESTADO_FIN:
         titulo, color = "FIN DE LA PARTIDA", aj.COLOR_ERROR

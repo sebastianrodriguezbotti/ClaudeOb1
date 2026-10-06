@@ -11,45 +11,50 @@ from visitante import Visitante
 
 
 def generar_visitante(paciencia=aj.PACIENCIA_BASE, nivel=aj.NIVELES[0]):
-    """Crea un visitante al azar, humano o impostor, según el nivel.
+    """Crea un empleado al azar, verdadero o impostor, según el nivel.
 
-    El personaje (sus imágenes) lo define el vecino real elegido. Un
-    impostor usa las imágenes de "impostor" y, además, tiene UNA
-    inconsistencia: nombre, apartamento, algo que dice (la mascota) o
-    solo el aspecto ("rasgo").
+    El personaje (sus imágenes) lo define el empleado elegido. Un impostor
+    usa las imágenes de "impostor" (su cara no coincide con la foto del
+    documento) y además tiene UNA inconsistencia: dice un piso que no
+    corresponde, dice un rubro que no es de ese lugar, el nombre de su
+    documento está mal escrito, o ninguna ("aspecto": solo se nota la cara).
     """
-    apartamentos = list(aj.RESIDENTES)[:nivel["residentes"]]
-    apto = random.choice(apartamentos)
-    datos = aj.RESIDENTES[apto]
-    nombre = datos["nombre"]
-    mascota = datos["mascota"]
-    imagen_id = datos["imagen"]
+    empleados = aj.EMPLEADOS[:nivel["empleados"]]
+    datos = random.choice(empleados)
+    lugar = datos["lugar"]
+    info = aj.LUGARES[lugar]
+    nombre, rubro, piso = datos["nombre"], datos["rubro"], info["piso"]
 
     if random.random() >= nivel["prob_impostor"]:
-        return Visitante(nombre, apto, imagen_id, mascota, False,
+        return Visitante(nombre, rubro, lugar, piso, datos["imagen"], False,
                          paciencia=paciencia)
 
     tipo = random.choice(nivel["tipos"])
+    nombre_documento = rubro_documento = None
     if tipo == "nombre":
-        nombre = aj.NOMBRES_PARECIDOS[apto]
-        motivo = f"Su nombre estaba mal: es {datos['nombre']}"
-    elif tipo == "apartamento":
-        real = apto
-        apto = random.choice([a for a in apartamentos if a != real])
-        motivo = f"{nombre} vive en el {real}, no en el {apto}"
-    elif tipo == "rasgo":
-        motivo = f"Su aspecto no era el de {datos['nombre']}"
+        nombre_documento = datos["nombre_parecido"]
+        motivo = f"El documento decía {nombre_documento}, no {nombre}"
+    elif tipo == "piso":
+        falso = random.choice([p for p in aj.PISOS if p != piso])
+        motivo = f"{lugar} está en el piso {piso}, no en el {falso}"
+        piso = falso
+    elif tipo == "aspecto":
+        motivo = "Su cara no coincidía con la foto del documento"
     else:
-        mascota = random.choice([m for m in aj.MASCOTAS if m != mascota])
-        motivo = f"Dijo tener un {mascota}; el libro dice {datos['mascota']}"
-    return Visitante(nombre, apto, imagen_id, mascota, True, motivo,
-                     paciencia)
+        falso = random.choice([e["rubro"] for e in empleados
+                               if e["rubro"] != rubro])
+        motivo = (f"Dijo ser {falso}, pero va {info['donde']} "
+                  f"({info['personal']})")
+        rubro_documento = rubro      # su documento dice el rubro verdadero
+        rubro = falso
+    return Visitante(nombre, rubro, lugar, piso, datos["imagen"], True,
+                     motivo, paciencia, nombre_documento, rubro_documento)
 
 
 def decision_correcta(visitante, permitir):
     """Devuelve True si la decisión fue la acertada.
 
-    Lo correcto es dejar pasar a los humanos y rechazar a los impostores.
+    Lo correcto es aprobar a los verdaderos y rechazar a los impostores.
     """
     return permitir == (not visitante.es_impostor)
 
@@ -66,7 +71,7 @@ def calcular_puntaje(puntaje, acerto, racha):
 
 
 def calcular_paciencia(racha, nivel):
-    """Devuelve los segundos de paciencia del próximo visitante.
+    """Devuelve los segundos de paciencia del próximo empleado.
 
     Parte de la paciencia del nivel y baja con cada acierto seguido,
     pero nunca por debajo del mínimo.
@@ -78,12 +83,12 @@ def calcular_paciencia(racha, nivel):
 def armar_mensaje(visitante, acerto, tiempo_agotado=False):
     """Devuelve el texto de resultado que se muestra tras decidir."""
     if tiempo_agotado:
-        return "¡Tiempo! El visitante se impacientó"
+        return "¡Tiempo! El empleado se impacientó"
     if acerto and not visitante.es_impostor:
         return "¡Bien!"
     prefijo = "¡Bien!" if acerto else "¡Error!"
     detalle = visitante.motivo if visitante.es_impostor else (
-        "Era un vecino de verdad")
+        "Era un empleado de verdad")
     return f"{prefijo} {detalle}"
 
 
@@ -146,6 +151,15 @@ def _escalar_a_alto(imagen, alto):
     return pygame.transform.smoothscale(imagen, (ancho, alto))
 
 
+def _recortar(imagen, fracciones):
+    """Devuelve el pedazo de la imagen indicado como fracciones (x, y, ancho, alto)."""
+    fx, fy, fancho, falto = fracciones
+    ancho, alto = imagen.get_width(), imagen.get_height()
+    zona = pygame.Rect(int(ancho * fx), int(alto * fy),
+                       max(1, int(ancho * fancho)), max(1, int(alto * falto)))
+    return imagen.subsurface(zona).copy()
+
+
 def _ajustar_en_caja(imagen, caja):
     """Devuelve la imagen escalada para entrar en 'caja' (ancho, alto)."""
     factor = min(caja[0] / imagen.get_width(), caja[1] / imagen.get_height())
@@ -159,7 +173,7 @@ def cargar_imagenes():
 
     Estructura: {"fondo1": Surface, "fondo2": Surface,
                  "visitantes": {imagen_id: {variante: Surface}},
-                 "fotos": {imagen_id: Surface}}   # retrato para la foto
+                 "fotos": {imagen_id: Surface}}   # retrato para el documento
     Si falta un archivo usa un reemplazo de color (para que el juego no se
     rompa) y avisa por consola cuáles faltan.
     """
@@ -173,7 +187,7 @@ def cargar_imagenes():
         "visitantes": {},
         "fotos": {},
     }
-    for datos in aj.RESIDENTES.values():
+    for datos in aj.EMPLEADOS:
         prefijo = datos["imagen"]
         if prefijo in imagenes["visitantes"]:
             continue
@@ -185,8 +199,8 @@ def cargar_imagenes():
             variantes[variante] = _escalar_a_alto(imagen,
                                                   aj.VISITANTE_IMG_ALTO)
         imagenes["visitantes"][prefijo] = variantes
-        imagenes["fotos"][prefijo] = _ajustar_en_caja(variantes["normal"],
-                                                      aj.FOTO_CAJA)
+        retrato = _recortar(variantes["normal"], aj.FOTO_RECORTE)
+        imagenes["fotos"][prefijo] = _ajustar_en_caja(retrato, aj.FOTO_CAJA)
     if faltan:
         print(f"[aviso] Faltan {len(faltan)} imágenes en "
               f"{aj.IMAGENES_CARPETA}: " + ", ".join(faltan))

@@ -12,7 +12,7 @@ ANCHO = 960
 ALTO = 540
 FPS = 60
 TITULO = "Esta noche no"
-SUBTITULO = "Portero de edificio. Desconfiá de todos."
+SUBTITULO = "Guardia de la fábrica. Desconfiá de todos."
 
 # --- Estados del juego ---
 ESTADO_MENU = "menu"
@@ -37,24 +37,25 @@ COLOR_PANEL = (28, 28, 42)
 COLOR_BOTON = (48, 48, 72)
 COLOR_BOTON_HOVER = (76, 76, 110)
 COLOR_BORDE = (110, 110, 150)
-COLOR_PERMITIR = (40, 110, 70)
+COLOR_PERMITIR = (40, 110, 70)          # sello APROBADO
 COLOR_PERMITIR_HOVER = (60, 150, 95)
-COLOR_RECHAZAR = (130, 45, 45)
+COLOR_RECHAZAR = (130, 45, 45)          # sello RECHAZADO
 COLOR_RECHAZAR_HOVER = (180, 65, 65)
-COLOR_PAPEL = (228, 218, 184)       # documento y foto
+COLOR_SELLO_MANGO = (70, 55, 45)
+COLOR_PAPEL = (228, 218, 184)           # documento y autorización
 COLOR_TINTA = (35, 30, 25)
-COLOR_FOTO_FONDO = (50, 50, 60)
+COLOR_FOTO_FONDO = (50, 50, 60)         # fondo detrás del retrato
 COLOR_SOMBRA = (12, 12, 18)
 
 # --- Imágenes (carpeta "imagenes" junto a main.py) ---
 # Se escriben SIN extensión: se busca .png, .jpg, .jpeg o .webp.
 IMAGENES_CARPETA = os.path.join(RUTA_BASE, "imagenes")
 EXTENSIONES_IMAGEN = (".png", ".jpg", ".jpeg", ".webp")
-FONDO_1 = "fondo1"    # primer plano: va ADELANTE del visitante (PNG con transparencia)
-FONDO_2 = "fondo2"    # fondo: va ATRÁS del visitante
-# Las 4 imágenes de cada visitante se llaman <prefijo>_<variante>.png
+FONDO_1 = "fondo1"    # primer plano: va ADELANTE del empleado (PNG con transparencia)
+FONDO_2 = "fondo2"    # fondo: va ATRÁS del empleado
+# Las 4 imágenes de cada empleado se llaman <prefijo>_<variante>.png
 VARIANTES = ["normal", "normal_enojado", "impostor", "impostor_enojado"]
-# Colores de reemplazo (R, G, B, A) si falta alguna imagen del visitante
+# Colores de reemplazo (R, G, B, A) si falta alguna imagen del empleado
 COLORES_REEMPLAZO = {
     "normal": (200, 200, 210, 255),
     "normal_enojado": (230, 160, 90, 255),
@@ -62,7 +63,7 @@ COLORES_REEMPLAZO = {
     "impostor_enojado": (220, 70, 70, 255),
 }
 
-# --- Visitante ---
+# --- Empleado en la puerta ---
 VISITANTE_IMG_ALTO = 320       # alto (px) con que se dibuja; el ancho es proporcional
 VISITANTE_BASE_Y = 410         # y donde apoya la parte de abajo de la imagen
 VISITANTE_VELOCIDAD = 220      # píxeles por segundo al entrar
@@ -70,13 +71,46 @@ VISITANTE_X_INICIAL = -250     # centro horizontal al empezar (fuera de pantalla
 VISITANTE_X_DESTINO = ANCHO // 2   # centro horizontal frente a la puerta
 SACUDIDA_ENOJADO = 3           # cuánto tiembla cuando está enojado (0 = no tiembla)
 
-# --- Documento y foto (se piden clickeando al visitante) ---
-TIPOS_OBJETO = ("documento", "foto")
-TEXTO_OBJETO = {"documento": "mi documento", "foto": "mi foto"}
-OBJETO_TAMANOS = {"documento": (220, 120), "foto": (130, 160)}   # ancho, alto
-OBJETO_SPAWN = {"documento": (170, 330), "foto": (170, 185)}     # centro donde aparecen
-FOTO_CAJA = (110, 130)         # espacio del retrato dentro de la foto
-# ¿Los impostores también exigen que les devuelvas sus cosas antes de decidir?
+# --- La fábrica ---
+# piso: en qué piso queda | personal: quiénes trabajan ahí
+# donde: cómo se dice "voy ..." (con su artículo)
+LUGARES = {
+    "Recepción": {"piso": 1, "personal": "recepcionistas", "donde": "a Recepción"},
+    "Depósito": {"piso": 1, "personal": "operarios", "donde": "al Depósito"},
+    "Laboratorio": {"piso": 2, "personal": "científicos", "donde": "al Laboratorio"},
+    "Taller": {"piso": 2, "personal": "mecánicos", "donde": "al Taller"},
+    "Seguridad": {"piso": 3, "personal": "guardias", "donde": "a Seguridad"},
+}
+PISOS = sorted({d["piso"] for d in LUGARES.values()})
+
+# Empleados (cada noche usa solo los primeros N, según "empleados").
+# imagen = prefijo de sus archivos (ej. marta_normal.png)
+# rubro = su puesto (uno distinto por empleado) | lugar = dónde trabaja
+# nombre_parecido = cómo aparece mal escrito en el documento de un impostor
+EMPLEADOS = [
+    {"nombre": "Marta Gómez", "nombre_parecido": "Marta Gomes",
+     "imagen": "marta", "rubro": "científica", "lugar": "Laboratorio"},
+    {"nombre": "Hugo Pereira", "nombre_parecido": "Hugo Pereyra",
+     "imagen": "hugo", "rubro": "guardia", "lugar": "Seguridad"},
+    {"nombre": "Lucía Ferrari", "nombre_parecido": "Lucia Ferrary",
+     "imagen": "lucia", "rubro": "recepcionista", "lugar": "Recepción"},
+    {"nombre": "Tomás Rivero", "nombre_parecido": "Tomás Rivera",
+     "imagen": "tomas", "rubro": "mecánico", "lugar": "Taller"},
+    {"nombre": "Elena Souza", "nombre_parecido": "Elena Sousa",
+     "imagen": "elena", "rubro": "operaria", "lugar": "Depósito"},
+]
+
+# --- Documento, autorización y sellos ---
+TIPOS_OBJETO = ("documento", "autorizacion")     # lo que se le puede pedir
+OBJETO_TAMANOS = {"documento": (320, 160), "autorizacion": (230, 160)}
+OBJETO_SPAWN = {"documento": (180, 340), "autorizacion": (170, 170)}   # centro
+# Foto del documento: el retrato sale de la imagen "normal" del empleado.
+FOTO_CAJA = (100, 112)                   # tamaño de la foto en el documento
+FOTO_RECORTE = (0.15, 0.0, 0.70, 0.62)   # zona de la imagen: x, y, ancho, alto (fracciones)
+SELLO_TAMANO = (150, 50)
+SELLO_CENTROS = {True: (715, 470), False: (875, 470)}   # True = APROBADO
+RETARDO_SELLO = 0.6            # segundos que se ve el sello antes de resolver
+# ¿Los impostores también exigen su documento antes de que sellés?
 IMPOSTOR_EXIGE_DEVOLUCION = False
 
 # --- Reglas generales ---
@@ -85,9 +119,9 @@ PUNTOS_ACIERTO = 100
 PUNTOS_RACHA = 25              # bonus por cada acierto seguido
 PUNTOS_BONUS_VIDA = 50         # bonus por vida que sobra al terminar una noche
 
-# --- Paciencia ---
-PACIENCIA_BASE = 12.0          # valor por defecto (cada noche define la suya)
-PACIENCIA_MIN = 4.0            # nunca espera menos que esto
+# --- Paciencia (segundos) ---
+PACIENCIA_BASE = 30.0          # valor por defecto (cada noche define la suya)
+PACIENCIA_MIN = 10.0           # nunca espera menos que esto
 PACIENCIA_REDUCCION = 0.5      # segundos que se restan por acierto seguido
 PACIENCIA_MEDIA = 0.6          # debajo de esta fracción la barra se pone amarilla
 PACIENCIA_ALERTA = 0.3         # debajo de esta fracción: barra roja e imagen enojada
@@ -99,55 +133,27 @@ COLOR_PACIENCIA_MEDIA = (230, 200, 80)
 COLOR_PACIENCIA_BAJA = (220, 80, 80)
 
 # --- Niveles (noches) ---
-# visitantes: cuántos hay que atender | residentes: cuántos vecinos hay en el libro
+# visitantes: cuántos empleados hay que atender | empleados: cuántos puestos hay
 # prob_impostor: chance de que sea impostor | paciencia: segundos iniciales
-# tipos: qué clase de inconsistencia puede tener un impostor
-#   ("rasgo" = no dice nada raro, solo se nota en su aspecto)
-TIPOS_TODOS = ["nombre", "apartamento", "dicho", "rasgo"]
+# tipos: cómo puede delatarse un impostor:
+#   "piso"   = dice un piso que no corresponde a su lugar de trabajo
+#   "rubro"  = dice un rubro que no es de ese lugar
+#   "nombre" = el nombre de su documento está mal escrito
+#   "aspecto" = no dice nada raro: solo su cara no coincide con la foto del documento
+TIPOS_TODOS = ["nombre", "piso", "rubro", "aspecto"]
 NIVELES = [
-    {"nombre": "Noche 1", "visitantes": 6, "residentes": 3,
-     "prob_impostor": 0.35, "paciencia": 14.0,
-     "tipos": ["apartamento", "dicho", "rasgo"]},
-    {"nombre": "Noche 2", "visitantes": 8, "residentes": 4,
-     "prob_impostor": 0.45, "paciencia": 11.0,
-     "tipos": TIPOS_TODOS},
-    {"nombre": "Noche 3", "visitantes": 10, "residentes": 5,
-     "prob_impostor": 0.50, "paciencia": 8.0,
-     "tipos": TIPOS_TODOS},
+    {"nombre": "Noche 1", "visitantes": 6, "empleados": 3,
+     "prob_impostor": 0.35, "paciencia": 30.0,
+     "tipos": ["piso", "rubro", "aspecto"]},
+    {"nombre": "Noche 2", "visitantes": 8, "empleados": 4,
+     "prob_impostor": 0.45, "paciencia": 25.0, "tipos": TIPOS_TODOS},
+    {"nombre": "Noche 3", "visitantes": 10, "empleados": 5,
+     "prob_impostor": 0.50, "paciencia": 20.0, "tipos": TIPOS_TODOS},
 ]
-
-# Libro de residentes: apartamento -> datos del inquilino
-# (cada noche usa solo los primeros N, según "residentes")
-# "imagen" = prefijo de los archivos del visitante (ej. marta_normal.png)
-# pelo / lentes / bigote = lo que dice el libro; tienen que coincidir con tus dibujos
-RESIDENTES = {
-    "1A": {"nombre": "Marta Gómez", "imagen": "marta", "pelo": "rojo",
-           "lentes": True, "bigote": False, "mascota": "gato"},
-    "1B": {"nombre": "Hugo Pereira", "imagen": "hugo", "pelo": "negro",
-           "lentes": False, "bigote": True, "mascota": "perro"},
-    "2A": {"nombre": "Lucía Ferrari", "imagen": "lucia", "pelo": "rubio",
-           "lentes": True, "bigote": False, "mascota": "canario"},
-    "2B": {"nombre": "Tomás Rivero", "imagen": "tomas", "pelo": "gris",
-           "lentes": False, "bigote": True, "mascota": "loro"},
-    "3A": {"nombre": "Elena Souza", "imagen": "elena", "pelo": "castaño",
-           "lentes": False, "bigote": False, "mascota": "conejo"},
-}
-
-# Nombres casi iguales a los reales (para el impostor que "falla" el nombre)
-NOMBRES_PARECIDOS = {
-    "1A": "Marta Gomes",
-    "1B": "Hugo Pereyra",
-    "2A": "Lucia Ferrary",
-    "2B": "Tomás Rivera",
-    "3A": "Elena Sousa",
-}
-
-# Mascotas posibles (para que el impostor invente una distinta)
-MASCOTAS = ["gato", "perro", "canario", "loro", "conejo", "pez"]
 
 # --- Sonidos ---
 SONIDOS_CARPETA = os.path.join(RUTA_BASE, "sonidos")
-NOMBRES_SONIDOS = ["timbre", "acierto", "error", "susto", "papel"]
+NOMBRES_SONIDOS = ["timbre", "acierto", "error", "susto", "papel", "sello"]
 FRECUENCIA_MUESTREO = 44100    # muestras por segundo de los .wav
 VOLUMEN = 0.6                  # volumen inicial (0.0 a 1.0)
 
@@ -162,24 +168,25 @@ SLIDER_ANCHO = 480
 
 # --- Textos de las pantallas de ayuda (una línea por elemento) ---
 TEXTO_INSTRUCCIONES = [
-    "Un visitante llega a la puerta y se presenta.",
-    "Compará lo que dice y cómo se ve con el libro de residentes.",
-    "Hacé clic en el visitante para pedirle su documento o su foto.",
-    "Podés arrastrarlos por la pantalla para compararlos.",
-    "Antes de decidir, devolvéselos arrastrándolos hasta él.",
+    "Un empleado llega a la puerta de la fábrica y se presenta.",
+    "Compará lo que dice con el EDIFICIO: pisos, áreas y rubros.",
+    "Clic en el empleado: pedile su documento (trae foto) y la",
+    "autorización de ingreso. Arrastralos para leerlos.",
+    "Compará su cara con la foto del documento.",
     "",
-    "Todo coincide:   PERMITIR  (tecla A o clic en el botón verde)",
-    "Algo no cuadra:  RECHAZAR  (tecla R o clic en el botón rojo)",
+    "Para decidir, arrastrá un SELLO sobre la autorización:",
+    "APROBADO si todo coincide, RECHAZADO si algo no cuadra.",
+    "Antes de sellar, devolvele su documento (arrastralo hasta él).",
     "",
-    "No tardes: la paciencia del visitante se agota.",
+    "No tardes: la paciencia del empleado se agota.",
     "ESC o el botón II pausan el juego.",
 ]
 TEXTO_OBJETIVO = [
-    "Sos el portero del edificio y esta noche no podés fallar.",
-    "Algunos visitantes no son vecinos: son impostores.",
+    "Sos el guardia de la fábrica y esta noche no podés fallar.",
+    "Algunos empleados no son quienes dicen ser: son impostores.",
     "",
-    "- Dejá pasar solo a los vecinos reales.",
-    "- Rechazá a los impostores (algo no coincide con el libro).",
+    "- Dejá entrar solo a los empleados verdaderos (sello APROBADO).",
+    "- Rechazá a los impostores (sello RECHAZADO).",
     "- Cada error o tiempo agotado te cuesta una vida.",
     "- Sobreviví a las 3 noches. Cada una es más difícil.",
 ]

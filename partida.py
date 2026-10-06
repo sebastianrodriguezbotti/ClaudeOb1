@@ -1,7 +1,7 @@
 """Clase Partida: guarda el estado de una partida y aplica sus reglas."""
 
 import ajustes as aj
-from objetos import Objeto
+from objetos import Objeto, Sello
 from utilidades import (generar_visitante, decision_correcta,
                         calcular_puntaje, calcular_paciencia, armar_mensaje)
 
@@ -13,15 +13,19 @@ class Partida:
         puntaje: puntos acumulados en toda la partida.
         nivel: índice de la noche actual en aj.NIVELES.
         vidas, racha, atendidos: contadores de la noche actual.
-        visitante: el Visitante que está en la puerta.
-        objetos: documentos y fotos que el jugador tiene en pantalla.
-        menu_abierto: True si se ve el menú "pedir documento / foto".
+        visitante: el empleado que está en la puerta.
+        objetos: documento y autorización que el jugador tiene en pantalla.
+        sellos: los dos sellos de la bandeja (APROBADO y RECHAZADO).
+        menu_abierto: True si se ve el menú "pedir documento / autorización".
+        sello_pendiente: None, o la decisión ya sellada que falta resolver.
         mensaje, color_mensaje: texto de la última decisión o aviso.
     """
 
     def __init__(self):
         """Empieza una partida nueva en la primera noche."""
         self.puntaje = 0
+        self.sellos = [Sello(True, aj.SELLO_CENTROS[True]),
+                       Sello(False, aj.SELLO_CENTROS[False])]
         self.iniciar_nivel(0)
 
     def config_nivel(self):
@@ -29,7 +33,7 @@ class Partida:
         return aj.NIVELES[self.nivel]
 
     def iniciar_nivel(self, indice):
-        """Prepara la noche 'indice': vidas completas y primer visitante."""
+        """Prepara la noche 'indice': vidas completas y primer empleado."""
         self.nivel = indice
         self.vidas = aj.VIDAS_INICIALES
         self.racha = 0
@@ -39,14 +43,18 @@ class Partida:
         self.siguiente_visitante()
 
     def siguiente_visitante(self):
-        """Genera el próximo visitante y limpia lo que había en pantalla."""
+        """Genera el próximo empleado y limpia lo que había en pantalla."""
         nivel = self.config_nivel()
         paciencia = calcular_paciencia(self.racha, nivel)
         self.visitante = generar_visitante(paciencia, nivel)
         self.objetos = []
         self.menu_abierto = False
+        self.sello_pendiente = None
+        self.espera_sello = 0.0
+        for sello in self.sellos:
+            sello.volver()
 
-    # --- Documento y foto ---
+    # --- Documento y autorización ---
 
     def opciones_disponibles(self):
         """Devuelve qué se le puede pedir (lo que todavía no está afuera)."""
@@ -54,24 +62,27 @@ class Partida:
                 if not any(o.tipo == t for o in self.objetos)]
 
     def pedir(self, tipo):
-        """El visitante entrega un documento o una foto."""
+        """El empleado entrega un documento o la autorización."""
         self.objetos.append(Objeto(tipo, self.visitante))
         self.menu_abierto = False
 
-    def texto_pendientes(self):
-        """Devuelve lo que falta devolver, ej. "mi documento y mi foto"."""
-        return " y ".join(aj.TEXTO_OBJETO[t] for t in aj.TIPOS_OBJETO
-                          if any(o.tipo == t for o in self.objetos))
+    def autorizacion(self):
+        """Devuelve el papel de autorización si está afuera, o None."""
+        for objeto in self.objetos:
+            if objeto.tipo == "autorizacion":
+                return objeto
+        return None
+
+    def documento_afuera(self):
+        """Devuelve True si el documento del empleado está en pantalla."""
+        return any(o.tipo == "documento" for o in self.objetos)
 
     def devolver(self, objeto):
-        """El jugador le devuelve el objeto al visitante."""
+        """El jugador le devuelve el documento al empleado."""
         self.objetos.remove(objeto)
         if self.visitante.exigiendo:
-            if self.objetos:
-                self.visitante.exigiendo = self.texto_pendientes()
-            else:
-                self.visitante.exigiendo = ""
-                self.mensaje = ""
+            self.visitante.exigiendo = ""
+            self.mensaje = ""
 
     def traer_al_frente(self, objeto):
         """Pone el objeto arriba de los demás (se dibuja último)."""
@@ -82,30 +93,72 @@ class Partida:
         """Cancela arrastres y cierra el menú (al pausar)."""
         for objeto in self.objetos:
             objeto.arrastrando = False
+        for sello in self.sellos:
+            sello.volver()
         self.menu_abierto = False
 
-    def puede_decidir(self):
-        """Devuelve False si el visitante exige sus cosas antes de decidir.
+    # --- Sellos ---
 
-        Solo los vecinos de verdad las reclaman (salvo que se active
+    def puede_decidir(self):
+        """Devuelve False si el empleado exige su documento antes de sellar.
+
+        Solo los empleados verdaderos lo reclaman (salvo que se active
         IMPOSTOR_EXIGE_DEVOLUCION en ajustes.py).
         """
-        if not self.objetos:
+        if not self.documento_afuera():
             return True
         return self.visitante.es_impostor and not aj.IMPOSTOR_EXIGE_DEVOLUCION
 
     def exigir_devolucion(self):
-        """El visitante reclama lo que todavía no le devolvieron."""
-        self.visitante.exigiendo = self.texto_pendientes()
-        self.mensaje = "¡Exige que le devuelvas sus cosas!"
+        """El empleado reclama el documento que todavía no le devolvieron."""
+        self.visitante.exigiendo = "mi documento"
+        self.mensaje = "¡Exige que le devuelvas su documento!"
         self.color_mensaje = aj.COLOR_ERROR
+
+    def soltar_sello(self, sello, pos):
+        """Procesa un sello soltado en la posición 'pos'.
+
+        Devuelve "ok" (quedó sellada), "exige" (el empleado reclama su
+        documento), "sin_autorizacion" (todavía no la pidió) o None
+        (se soltó en otro lado).
+        """
+        autorizacion = self.autorizacion()
+        if autorizacion is None:
+            self.mensaje = "Primero pedile la autorización"
+            self.color_mensaje = aj.COLOR_ERROR
+            return "sin_autorizacion"
+        if not autorizacion.rect.collidepoint(pos):
+            return None
+        if not self.puede_decidir():
+            self.exigir_devolucion()
+            return "exige"
+        autorizacion.sello = sello.valor
+        self.sello_pendiente = sello.valor
+        self.espera_sello = aj.RETARDO_SELLO
+        self.mensaje = ""
+        return "ok"
+
+    def avanzar_sello(self, dt):
+        """Espera un instante con el sello a la vista (dt en segundos).
+
+        Devuelve la decisión (True/False) cuando termina la espera, o
+        None si no hay sello o todavía falta.
+        """
+        if self.sello_pendiente is None:
+            return None
+        self.espera_sello -= dt
+        if self.espera_sello > 0:
+            return None
+        decision = self.sello_pendiente
+        self.sello_pendiente = None
+        return decision
 
     # --- Reglas de la noche ---
 
     def resolver(self, decision, tiempo_agotado=False):
-        """Aplica el resultado de atender al visitante actual.
+        """Aplica el resultado de atender al empleado actual.
 
-        'decision' es True (permitir) o False (rechazar); si se acabó el
+        'decision' es True (aprobado) o False (rechazado); si se acabó el
         tiempo no importa. Devuelve (acerto, evento), donde evento es None,
         "nivel_completo", "victoria" o "fin".
         """

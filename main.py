@@ -1,9 +1,9 @@
-"""Esta noche no - paso 8: documento y foto arrastrables, y pausa.
+"""Esta noche no - paso 9: fábrica, rubros, autorización y sellos.
 
 Estados: menú, instrucciones, objetivo, configuración, jugando, pausa,
 nivel completo, fin y victoria. Se maneja con el mouse (botones, clic en el
-visitante, arrastrar papeles) y con el teclado (A = permitir, R = rechazar,
-ENTER = continuar, ESC = pausa / volver).
+empleado, arrastrar papeles y sellos) y con el teclado (ENTER = continuar,
+ESC = pausa / volver).
 """
 
 import pygame
@@ -17,58 +17,63 @@ from partida import Partida
 from utilidades import cargar_sonidos, cargar_imagenes, aplicar_volumen
 
 
-def manejar_evento_juego(evento, clic, tecla, partida, ui, sonidos):
+def manejar_evento_juego(evento, clic, partida, ui, sonidos):
     """Procesa un evento mientras se juega.
 
-    Devuelve (decision, pausa): decision es True (permitir), False
-    (rechazar) o None; pausa es True si se apretó el botón de pausa.
+    Devuelve True si se apretó el botón de pausa.
     """
     visitante = partida.visitante
+    if partida.sello_pendiente is not None:   # se está estampando el sello
+        return False
 
-    # 1) Documento y foto: el que está arriba tiene prioridad
+    # 1) Sellos (están arriba de todo)
+    if visitante.llego():
+        for sello in partida.sellos:
+            accion = sello.manejar_evento(evento)
+            if accion in ("agarrado", "movido"):
+                return False
+            if accion == "soltado":
+                resultado = partida.soltar_sello(sello, evento.pos)
+                sello.volver()                 # siempre vuelve a la bandeja
+                if resultado == "ok":
+                    sonidos["sello"].play()
+                elif resultado is not None:
+                    sonidos["error"].play()
+                return False
+
+    # 2) Documento y autorización: el que está arriba tiene prioridad
     for objeto in list(reversed(partida.objetos)):
         accion = objeto.manejar_evento(evento)
         if accion == "agarrado":
             partida.traer_al_frente(objeto)
-            return None, False
+            return False
         if accion == "movido":
-            return None, False
+            return False
         if accion == "soltado":
-            if visitante.rect.collidepoint(evento.pos):   # soltado sobre él
+            # el documento se devuelve soltándolo sobre el empleado
+            if (objeto.tipo == "documento"
+                    and visitante.rect.collidepoint(evento.pos)):
                 partida.devolver(objeto)
                 sonidos["papel"].play()
-            return None, False
+            return False
 
-    # 2) Clics
+    # 3) Clics
     if clic:
         if partida.menu_abierto:
             for tipo in partida.opciones_disponibles():
                 if ui[f"pedir_{tipo}"].bajo_mouse(clic):
                     partida.pedir(tipo)
                     sonidos["papel"].play()
-                    return None, False
+                    return False
             partida.menu_abierto = False        # clic en otro lado: se cierra
             if visitante.rect.collidepoint(clic):
-                return None, False
+                return False
         if ui["pausa"].bajo_mouse(clic):
-            return None, True
-        if visitante.llego():
-            if ui["permitir"].bajo_mouse(clic):
-                return True, False
-            if ui["rechazar"].bajo_mouse(clic):
-                return False, False
-            if (visitante.rect.collidepoint(clic)
-                    and partida.opciones_disponibles()):
-                partida.menu_abierto = True
-        return None, False
-
-    # 3) Teclado
-    if visitante.llego():
-        if tecla == pygame.K_a:
-            return True, False
-        if tecla == pygame.K_r:
-            return False, False
-    return None, False
+            return True
+        if (visitante.llego() and visitante.rect.collidepoint(clic)
+                and partida.opciones_disponibles()):
+            partida.menu_abierto = True
+    return False
 
 
 def main():
@@ -106,7 +111,6 @@ def main():
     while corriendo:
         dt = reloj.tick(aj.FPS) / 1000
         pos_mouse = pygame.mouse.get_pos()
-        decision = None   # None = nadie decidió; True = permitir; False = rechazar
 
         # 1) EVENTOS
         for evento in pygame.event.get():
@@ -165,11 +169,7 @@ def main():
                     estado = origen
 
             elif estado == aj.ESTADO_JUGANDO:
-                quedo, pausa = manejar_evento_juego(evento, clic, tecla,
-                                                    partida, ui, sonidos)
-                if quedo is not None:
-                    decision = quedo
-                if pausa:
+                if manejar_evento_juego(evento, clic, partida, ui, sonidos):
                     partida.soltar_todo()
                     estado = aj.ESTADO_PAUSA
 
@@ -203,16 +203,16 @@ def main():
         # 2) ACTUALIZAR (solo mientras se juega: en pausa todo queda quieto)
         if estado == aj.ESTADO_JUGANDO:
             visitante = partida.visitante
-            # un vecino de verdad no te deja decidir sin sus cosas
-            if decision is not None and not partida.puede_decidir():
-                partida.exigir_devolucion()
-                sonidos["error"].play()
-                decision = None
             if visitante.actualizar(dt):   # True al llegar a la puerta
                 sonidos["timbre"].play()
-            tiempo_agotado = decision is None and visitante.esperar(dt)
+            # decision: True/False cuando termina de estamparse un sello
+            decision = partida.avanzar_sello(dt)
+            # la paciencia solo corre si no se está estampando un sello
+            tiempo_agotado = (partida.sello_pendiente is None
+                              and decision is None
+                              and visitante.esperar(dt))
 
-            # 3) RESOLVER: una decisión del jugador o se acabó la paciencia
+            # 3) RESOLVER: un sello estampado o se acabó la paciencia
             if decision is not None or tiempo_agotado:
                 acerto, evento_fin = partida.resolver(decision, tiempo_agotado)
                 sonidos["acierto" if acerto else "error"].play()

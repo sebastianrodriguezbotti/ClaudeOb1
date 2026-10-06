@@ -1,4 +1,4 @@
-"""Clase Visitante: alguien que toca el timbre del edificio."""
+"""Clase Visitante: un empleado (o impostor) que llega a la puerta."""
 
 import math
 
@@ -8,39 +8,44 @@ import ajustes as aj
 
 
 class Visitante:
-    """Persona (o impostor) que camina hasta la puerta y pide entrar.
+    """Empleado que camina hasta la puerta de la fábrica y pide entrar.
 
     Atributos:
-        nombre, apartamento: lo que dice ser y adónde dice ir.
+        nombre, rubro: lo que dice ser.
+        lugar, piso: adónde dice ir (área de la fábrica y piso).
         imagen_id: prefijo de sus imágenes (qué personaje es).
-        mascota: lo que cuenta sobre su mascota.
+        nombre_documento, rubro_documento: lo que figura en su documento.
         es_impostor: True si es un monstruo disfrazado.
-        motivo: qué lo delata (None si es humano).
+        motivo: qué lo delata (None si es verdadero).
         paciencia_max / paciencia: segundos totales y restantes de espera.
-        exigiendo: texto de lo que reclama que le devuelvan ("" si nada).
+        exigiendo: lo que reclama que le devuelvan ("" si nada).
         x: centro horizontal de la imagen (float para moverse suave).
         rect: rectángulo donde se dibujó la imagen por última vez.
     """
 
-    def __init__(self, nombre, apartamento, imagen_id, mascota, es_impostor,
-                 motivo=None, paciencia=aj.PACIENCIA_BASE):
-        """Crea el visitante con sus datos y lo ubica fuera de pantalla."""
+    def __init__(self, nombre, rubro, lugar, piso, imagen_id, es_impostor,
+                 motivo=None, paciencia=aj.PACIENCIA_BASE,
+                 nombre_documento=None, rubro_documento=None):
+        """Crea al empleado con sus datos y lo ubica fuera de pantalla."""
         self.nombre = nombre
-        self.apartamento = apartamento
+        self.rubro = rubro
+        self.lugar = lugar
+        self.piso = piso
         self.imagen_id = imagen_id
-        self.mascota = mascota
         self.es_impostor = es_impostor
         self.motivo = motivo
+        self.nombre_documento = nombre_documento or nombre
+        self.rubro_documento = rubro_documento or rubro
         self.paciencia_max = paciencia
         self.paciencia = paciencia
-        self.exigiendo = ""   # qué cosas reclama ("mi foto", ...); vacío si nada
+        self.exigiendo = ""
         self.x = float(aj.VISITANTE_X_INICIAL)
         self.rect = pygame.Rect(int(self.x),
                                 aj.VISITANTE_BASE_Y - aj.VISITANTE_IMG_ALTO,
                                 1, aj.VISITANTE_IMG_ALTO)
 
     def actualizar(self, dt):
-        """Hace caminar al visitante hasta la puerta (dt en segundos).
+        """Hace caminar al empleado hasta la puerta (dt en segundos).
 
         Devuelve True solo en el cuadro exacto en que llega (para el timbre).
         """
@@ -81,14 +86,15 @@ class Visitante:
         return base + "_enojado" if self.impaciente() else base
 
     def frases(self):
-        """Devuelve la lista de cosas que dice el visitante."""
+        """Devuelve la lista de cosas que dice el empleado."""
+        donde = aj.LUGARES[self.lugar]["donde"]
         return [
-            f"Hola, soy {self.nombre}, del {self.apartamento}.",
-            f"Vengo a darle de comer a mi {self.mascota}.",
+            f"Hola, soy {self.nombre}. Trabajo de {self.rubro}.",
+            f"Voy {donde}, en el piso {self.piso}.",
         ]
 
     def dibujar(self, pantalla, imagenes):
-        """Dibuja la imagen del visitante apoyada en VISITANTE_BASE_Y.
+        """Dibuja la imagen del empleado apoyada en VISITANTE_BASE_Y.
 
         Si está enojado, además tiembla un poco.
         """

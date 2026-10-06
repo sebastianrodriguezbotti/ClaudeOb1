@@ -75,6 +75,7 @@ def generar_todos():
     _guardar("error", _onda(110, 0.5, tipo="cuadrada", volumen=0.4))
     _guardar("susto", _barrido(900, 70, 1.1))
     _guardar("papel", _ruido(0.18))
+    _guardar("sello", _barrido(160, 45, 0.16, ruido=0.4, volumen=0.9))
 
 
 if __name__ == "__main__":
