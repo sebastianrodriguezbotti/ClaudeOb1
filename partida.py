@@ -17,13 +17,13 @@ class Partida:
         objetos: documento y autorización que el jugador tiene en pantalla.
         sellos: los dos sellos de la bandeja (APROBADO y RECHAZADO).
         menu_abierto: True si se ve el menú "pedir documento / autorización".
-        sello_pendiente: None, o la decisión ya sellada que falta resolver.
         mensaje, color_mensaje: texto de la última decisión o aviso.
     """
 
     def __init__(self):
         """Empieza una partida nueva en la primera noche."""
         self.puntaje = 0
+        self.visitante = None
         self.sellos = [Sello(True, aj.SELLO_CENTROS[True]),
                        Sello(False, aj.SELLO_CENTROS[False])]
         self.iniciar_nivel(0)
@@ -43,14 +43,13 @@ class Partida:
         self.siguiente_visitante()
 
     def siguiente_visitante(self):
-        """Genera el próximo empleado y limpia lo que había en pantalla."""
+        """Genera el próximo empleado (con otra cara) y limpia la pantalla."""
         nivel = self.config_nivel()
         paciencia = calcular_paciencia(self.racha, nivel)
-        self.visitante = generar_visitante(paciencia, nivel)
+        anterior = self.visitante.imagen_id if self.visitante else None
+        self.visitante = generar_visitante(paciencia, nivel, anterior)
         self.objetos = []
         self.menu_abierto = False
-        self.sello_pendiente = None
-        self.espera_sello = 0.0
         for sello in self.sellos:
             sello.volver()
 
@@ -73,17 +72,6 @@ class Partida:
                 return objeto
         return None
 
-    def documento_afuera(self):
-        """Devuelve True si el documento del empleado está en pantalla."""
-        return any(o.tipo == "documento" for o in self.objetos)
-
-    def devolver(self, objeto):
-        """El jugador le devuelve el documento al empleado."""
-        self.objetos.remove(objeto)
-        if self.visitante.exigiendo:
-            self.visitante.exigiendo = ""
-            self.mensaje = ""
-
     def traer_al_frente(self, objeto):
         """Pone el objeto arriba de los demás (se dibuja último)."""
         self.objetos.remove(objeto)
@@ -97,30 +85,14 @@ class Partida:
             sello.volver()
         self.menu_abierto = False
 
-    # --- Sellos ---
-
-    def puede_decidir(self):
-        """Devuelve False si el empleado exige su documento antes de sellar.
-
-        Solo los empleados verdaderos lo reclaman (salvo que se active
-        IMPOSTOR_EXIGE_DEVOLUCION en ajustes.py).
-        """
-        if not self.documento_afuera():
-            return True
-        return self.visitante.es_impostor and not aj.IMPOSTOR_EXIGE_DEVOLUCION
-
-    def exigir_devolucion(self):
-        """El empleado reclama el documento que todavía no le devolvieron."""
-        self.visitante.exigiendo = "mi documento"
-        self.mensaje = "¡Exige que le devuelvas su documento!"
-        self.color_mensaje = aj.COLOR_ERROR
+    # --- Sellos y entrega ---
 
     def soltar_sello(self, sello, pos):
         """Procesa un sello soltado en la posición 'pos'.
 
-        Devuelve "ok" (quedó sellada), "exige" (el empleado reclama su
-        documento), "sin_autorizacion" (todavía no la pidió) o None
-        (se soltó en otro lado).
+        Devuelve "ok" (quedó sellada), "sin_autorizacion" (todavía no la
+        pidió), "ya_sellada" (no se puede cambiar) o None (se soltó en
+        otro lado). Sellar NO decide: hay que entregarla.
         """
         autorizacion = self.autorizacion()
         if autorizacion is None:
@@ -129,29 +101,35 @@ class Partida:
             return "sin_autorizacion"
         if not autorizacion.rect.collidepoint(pos):
             return None
-        if not self.puede_decidir():
-            self.exigir_devolucion()
-            return "exige"
+        if autorizacion.sello is not None:
+            self.mensaje = "La autorización ya está sellada"
+            self.color_mensaje = aj.COLOR_ERROR
+            return "ya_sellada"
         autorizacion.sello = sello.valor
-        self.sello_pendiente = sello.valor
-        self.espera_sello = aj.RETARDO_SELLO
-        self.mensaje = ""
+        self.mensaje = "Autorización sellada: entregásela al empleado"
+        self.color_mensaje = aj.COLOR_TEXTO
         return "ok"
 
-    def avanzar_sello(self, dt):
-        """Espera un instante con el sello a la vista (dt en segundos).
+    def entregar(self, objeto):
+        """El jugador suelta un papel sobre el empleado.
 
-        Devuelve la decisión (True/False) cuando termina la espera, o
-        None si no hay sello o todavía falta.
+        - Documento: se lo lleva (y no pasa nada más).
+        - Autorización sin sellar: la rechaza.
+        - Autorización sellada: se lleva TODO lo que haya afuera, junto,
+          y queda decidido.
+
+        Devuelve (entregado, decision): decision es True (aprobado),
+        False (rechazado) o None si todavía no se decide.
         """
-        if self.sello_pendiente is None:
-            return None
-        self.espera_sello -= dt
-        if self.espera_sello > 0:
-            return None
-        decision = self.sello_pendiente
-        self.sello_pendiente = None
-        return decision
+        if objeto.tipo == "documento":
+            self.objetos.remove(objeto)
+            return True, None
+        if objeto.sello is None:
+            self.mensaje = "Primero sellá la autorización"
+            self.color_mensaje = aj.COLOR_ERROR
+            return False, None
+        self.objetos = []
+        return True, objeto.sello
 
     # --- Reglas de la noche ---
 

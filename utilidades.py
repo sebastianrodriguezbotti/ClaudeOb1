@@ -2,6 +2,7 @@
 
 import os
 import random
+import re
 
 import pygame
 
@@ -10,29 +11,59 @@ import generar_sonidos
 from visitante import Visitante
 
 
-def generar_visitante(paciencia=aj.PACIENCIA_BASE, nivel=aj.NIVELES[0]):
+def alterar_nombre(nombre):
+    """Devuelve el nombre con UNA letra cambiada por otra parecida.
+
+    Ej.: "Marta Gómez" -> "Marta Gomez" o "Marta Gómes". Si no hay ninguna
+    letra confundible, intercambia dos letras vecinas del final.
+    """
+    opciones = []
+    for viejo, nuevo in aj.CAMBIOS_PARECIDOS:
+        for hallazgo in re.finditer(viejo, nombre):
+            opciones.append((hallazgo.start(), len(viejo), nuevo))
+    if opciones:
+        inicio, largo, nuevo = random.choice(opciones)
+        return nombre[:inicio] + nuevo + nombre[inicio + largo:]
+    letras = list(nombre)
+    for i in range(len(letras) - 2, 0, -1):
+        if letras[i] != letras[i + 1]:
+            letras[i], letras[i + 1] = letras[i + 1], letras[i]
+            break
+    return "".join(letras)
+
+
+def generar_visitante(paciencia=aj.PACIENCIA_BASE, nivel=aj.NIVELES[0],
+                      evitar_imagen=None):
     """Crea un empleado al azar, verdadero o impostor, según el nivel.
 
-    El personaje (sus imágenes) lo define el empleado elegido. Un impostor
-    usa las imágenes de "impostor" (su cara no coincide con la foto del
-    documento) y además tiene UNA inconsistencia: dice un piso que no
-    corresponde, dice un rubro que no es de ese lugar, el nombre de su
+    Combina al azar una cara, un nombre, un apellido y un lugar de trabajo
+    (el rubro sale del lugar y del género de la cara). 'evitar_imagen'
+    evita repetir la cara del empleado anterior.
+
+    Un impostor usa las imágenes de "impostor" (su cara no coincide con la
+    foto del documento) y además tiene UNA inconsistencia: dice un piso que
+    no corresponde, dice un rubro que no es de ese lugar, el nombre de su
     documento está mal escrito, o ninguna ("aspecto": solo se nota la cara).
     """
-    empleados = aj.EMPLEADOS[:nivel["empleados"]]
-    datos = random.choice(empleados)
-    lugar = datos["lugar"]
+    lugares = list(aj.LUGARES)[:nivel["lugares"]]
+    caras = [c for c in aj.CARAS if c["imagen"] != evitar_imagen] or aj.CARAS
+    cara = random.choice(caras)
+    genero = cara["genero"]
+    indice = 0 if genero == "m" else 1          # posición en la tupla del rubro
+    nombre = (f"{random.choice(aj.NOMBRES[genero])} "
+              f"{random.choice(aj.APELLIDOS)}")
+    lugar = random.choice(lugares)
     info = aj.LUGARES[lugar]
-    nombre, rubro, piso = datos["nombre"], datos["rubro"], info["piso"]
+    rubro, piso = info["rubro"][indice], info["piso"]
 
     if random.random() >= nivel["prob_impostor"]:
-        return Visitante(nombre, rubro, lugar, piso, datos["imagen"], False,
+        return Visitante(nombre, rubro, lugar, piso, cara["imagen"], False,
                          paciencia=paciencia)
 
     tipo = random.choice(nivel["tipos"])
     nombre_documento = rubro_documento = None
     if tipo == "nombre":
-        nombre_documento = datos["nombre_parecido"]
+        nombre_documento = alterar_nombre(nombre)
         motivo = f"El documento decía {nombre_documento}, no {nombre}"
     elif tipo == "piso":
         falso = random.choice([p for p in aj.PISOS if p != piso])
@@ -41,13 +72,13 @@ def generar_visitante(paciencia=aj.PACIENCIA_BASE, nivel=aj.NIVELES[0]):
     elif tipo == "aspecto":
         motivo = "Su cara no coincidía con la foto del documento"
     else:
-        falso = random.choice([e["rubro"] for e in empleados
-                               if e["rubro"] != rubro])
+        otro = random.choice([l for l in lugares if l != lugar])
+        falso = aj.LUGARES[otro]["rubro"][indice]
         motivo = (f"Dijo ser {falso}, pero va {info['donde']} "
                   f"({info['personal']})")
         rubro_documento = rubro      # su documento dice el rubro verdadero
         rubro = falso
-    return Visitante(nombre, rubro, lugar, piso, datos["imagen"], True,
+    return Visitante(nombre, rubro, lugar, piso, cara["imagen"], True,
                      motivo, paciencia, nombre_documento, rubro_documento)
 
 
@@ -187,7 +218,7 @@ def cargar_imagenes():
         "visitantes": {},
         "fotos": {},
     }
-    for datos in aj.EMPLEADOS:
+    for datos in aj.CARAS:
         prefijo = datos["imagen"]
         if prefijo in imagenes["visitantes"]:
             continue

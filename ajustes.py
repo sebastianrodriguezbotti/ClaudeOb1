@@ -72,33 +72,49 @@ VISITANTE_X_DESTINO = ANCHO // 2   # centro horizontal frente a la puerta
 SACUDIDA_ENOJADO = 3           # cuánto tiembla cuando está enojado (0 = no tiembla)
 
 # --- La fábrica ---
-# piso: en qué piso queda | personal: quiénes trabajan ahí
-# donde: cómo se dice "voy ..." (con su artículo)
+# piso: en qué piso queda | rubro: (masculino, femenino) de quien trabaja ahí
+# personal: lo mismo en plural | donde: cómo se dice "voy ..." (con su artículo)
+# El orden importa: cada noche usa solo los primeros N lugares ("lugares").
 LUGARES = {
-    "Recepción": {"piso": 1, "personal": "recepcionistas", "donde": "a Recepción"},
-    "Depósito": {"piso": 1, "personal": "operarios", "donde": "al Depósito"},
-    "Laboratorio": {"piso": 2, "personal": "científicos", "donde": "al Laboratorio"},
-    "Taller": {"piso": 2, "personal": "mecánicos", "donde": "al Taller"},
-    "Seguridad": {"piso": 3, "personal": "guardias", "donde": "a Seguridad"},
+    "Recepción": {"piso": 1, "rubro": ("recepcionista", "recepcionista"),
+                  "personal": "recepcionistas", "donde": "a Recepción"},
+    "Laboratorio": {"piso": 2, "rubro": ("científico", "científica"),
+                    "personal": "científicos", "donde": "al Laboratorio"},
+    "Seguridad": {"piso": 3, "rubro": ("guardia", "guardia"),
+                  "personal": "guardias", "donde": "a Seguridad"},
+    "Depósito": {"piso": 1, "rubro": ("operario", "operaria"),
+                 "personal": "operarios", "donde": "al Depósito"},
+    "Taller": {"piso": 2, "rubro": ("mecánico", "mecánica"),
+               "personal": "mecánicos", "donde": "al Taller"},
+    "Oficinas": {"piso": 3, "rubro": ("administrativo", "administrativa"),
+                 "personal": "administrativos", "donde": "a Oficinas"},
 }
 PISOS = sorted({d["piso"] for d in LUGARES.values()})
 
-# Empleados (cada noche usa solo los primeros N, según "empleados").
-# imagen = prefijo de sus archivos (ej. marta_normal.png)
-# rubro = su puesto (uno distinto por empleado) | lugar = dónde trabaja
-# nombre_parecido = cómo aparece mal escrito en el documento de un impostor
-EMPLEADOS = [
-    {"nombre": "Marta Gómez", "nombre_parecido": "Marta Gomes",
-     "imagen": "marta", "rubro": "científica", "lugar": "Laboratorio"},
-    {"nombre": "Hugo Pereira", "nombre_parecido": "Hugo Pereyra",
-     "imagen": "hugo", "rubro": "guardia", "lugar": "Seguridad"},
-    {"nombre": "Lucía Ferrari", "nombre_parecido": "Lucia Ferrary",
-     "imagen": "lucia", "rubro": "recepcionista", "lugar": "Recepción"},
-    {"nombre": "Tomás Rivero", "nombre_parecido": "Tomás Rivera",
-     "imagen": "tomas", "rubro": "mecánico", "lugar": "Taller"},
-    {"nombre": "Elena Souza", "nombre_parecido": "Elena Sousa",
-     "imagen": "elena", "rubro": "operaria", "lugar": "Depósito"},
+# Personajes: cada uno es un juego de 4 imágenes (<imagen>_normal.png, etc.).
+# genero: "m" o "f" (decide qué nombres y qué forma del rubro le tocan).
+# Para sumar un personaje: agregá sus 4 imágenes y una línea acá.
+CARAS = [
+    {"imagen": "marta", "genero": "f"},
+    {"imagen": "hugo", "genero": "m"},
+    {"imagen": "lucia", "genero": "f"},
+    {"imagen": "tomas", "genero": "m"},
+    {"imagen": "elena", "genero": "f"},
 ]
+# Cada empleado sale de combinar al azar: una cara + nombre + apellido + lugar.
+NOMBRES = {
+    "f": ["Marta", "Lucía", "Elena", "Julia", "Sofía", "Carla", "Paula",
+          "Valentina", "Camila", "Renata"],
+    "m": ["Hugo", "Tomás", "Diego", "Martín", "Andrés", "Bruno", "Mateo",
+          "Sergio", "Gonzalo", "Ignacio"],
+}
+APELLIDOS = ["Gómez", "Pereira", "Ferrari", "Rivero", "Souza", "Suárez",
+             "Méndez", "Olivera", "Núñez", "Silva", "Cabrera", "Benítez",
+             "Fernández", "Rodríguez", "Techera", "Barrios"]
+# Letras que se confunden fácil: así se escribe mal un nombre en el documento.
+CAMBIOS_PARECIDOS = [("ó", "o"), ("í", "i"), ("á", "a"), ("é", "e"),
+                     ("ú", "u"), ("z", "s"), ("s", "z"), ("y", "i"),
+                     ("i", "y"), ("b", "v"), ("v", "b"), ("ll", "y")]
 
 # --- Documento, autorización y sellos ---
 TIPOS_OBJETO = ("documento", "autorizacion")     # lo que se le puede pedir
@@ -109,9 +125,6 @@ FOTO_CAJA = (100, 112)                   # tamaño de la foto en el documento
 FOTO_RECORTE = (0.15, 0.0, 0.70, 0.62)   # zona de la imagen: x, y, ancho, alto (fracciones)
 SELLO_TAMANO = (150, 50)
 SELLO_CENTROS = {True: (715, 470), False: (875, 470)}   # True = APROBADO
-RETARDO_SELLO = 0.6            # segundos que se ve el sello antes de resolver
-# ¿Los impostores también exigen su documento antes de que sellés?
-IMPOSTOR_EXIGE_DEVOLUCION = False
 
 # --- Reglas generales ---
 VIDAS_INICIALES = 3            # vidas al empezar CADA noche
@@ -133,7 +146,7 @@ COLOR_PACIENCIA_MEDIA = (230, 200, 80)
 COLOR_PACIENCIA_BAJA = (220, 80, 80)
 
 # --- Niveles (noches) ---
-# visitantes: cuántos empleados hay que atender | empleados: cuántos puestos hay
+# visitantes: cuántos empleados hay que atender | lugares: cuántos hay en el edificio
 # prob_impostor: chance de que sea impostor | paciencia: segundos iniciales
 # tipos: cómo puede delatarse un impostor:
 #   "piso"   = dice un piso que no corresponde a su lugar de trabajo
@@ -142,12 +155,12 @@ COLOR_PACIENCIA_BAJA = (220, 80, 80)
 #   "aspecto" = no dice nada raro: solo su cara no coincide con la foto del documento
 TIPOS_TODOS = ["nombre", "piso", "rubro", "aspecto"]
 NIVELES = [
-    {"nombre": "Noche 1", "visitantes": 6, "empleados": 3,
+    {"nombre": "Noche 1", "visitantes": 6, "lugares": 3,
      "prob_impostor": 0.35, "paciencia": 30.0,
      "tipos": ["piso", "rubro", "aspecto"]},
-    {"nombre": "Noche 2", "visitantes": 8, "empleados": 4,
+    {"nombre": "Noche 2", "visitantes": 8, "lugares": 4,
      "prob_impostor": 0.45, "paciencia": 25.0, "tipos": TIPOS_TODOS},
-    {"nombre": "Noche 3", "visitantes": 10, "empleados": 5,
+    {"nombre": "Noche 3", "visitantes": 10, "lugares": 6,
      "prob_impostor": 0.50, "paciencia": 20.0, "tipos": TIPOS_TODOS},
 ]
 
@@ -174,12 +187,12 @@ TEXTO_INSTRUCCIONES = [
     "autorización de ingreso. Arrastralos para leerlos.",
     "Compará su cara con la foto del documento.",
     "",
-    "Para decidir, arrastrá un SELLO sobre la autorización:",
-    "APROBADO si todo coincide, RECHAZADO si algo no cuadra.",
-    "Antes de sellar, devolvele su documento (arrastralo hasta él).",
+    "Arrastrá un SELLO sobre la autorización: APROBADO si todo",
+    "coincide, RECHAZADO si algo no cuadra (no se puede cambiar).",
+    "Después arrastrá la autorización sellada hasta el empleado:",
+    "se lleva todo junto, con su documento. Ahí se decide.",
     "",
-    "No tardes: la paciencia del empleado se agota.",
-    "ESC o el botón II pausan el juego.",
+    "No tardes: su paciencia se agota. ESC o II pausan el juego.",
 ]
 TEXTO_OBJETIVO = [
     "Sos el guardia de la fábrica y esta noche no podés fallar.",

@@ -103,8 +103,7 @@ def dibujar_edificio(pantalla, fuentes, nivel):
     pantalla.blit(fuentes["normal"].render("EDIFICIO", True, aj.COLOR_TEXTO),
                   (650, 16))
     pisos = {}
-    for datos in aj.EMPLEADOS[:nivel["empleados"]]:
-        lugar = datos["lugar"]
+    for lugar in list(aj.LUGARES)[:nivel["lugares"]]:
         pisos.setdefault(aj.LUGARES[lugar]["piso"], []).append(lugar)
     y = 42
     for piso in sorted(pisos):
@@ -120,13 +119,9 @@ def dibujar_edificio(pantalla, fuentes, nivel):
 
 
 def dibujar_ficha(pantalla, fuentes, visitante):
-    """Dibuja lo que dice el empleado (o lo que reclama si exige su documento)."""
+    """Dibuja lo que dice el empleado."""
     pygame.draw.rect(pantalla, aj.COLOR_PANEL, (20, 445, 600, 70))
-    if visitante.exigiendo:
-        lineas = [(f"«¡Devolveme {visitante.exigiendo}!»", aj.COLOR_ERROR),
-                  ("Arrastralo hasta el empleado.", aj.COLOR_SECUNDARIO)]
-    else:
-        lineas = [(f"«{f}»", aj.COLOR_TEXTO) for f in visitante.frases()]
+    lineas = [(f"«{f}»", aj.COLOR_TEXTO) for f in visitante.frases()]
     for i, (linea, color) in enumerate(lineas):
         pantalla.blit(fuentes["normal"].render(linea, True, color),
                       (30, 455 + i * 26))
