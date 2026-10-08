@@ -159,29 +159,31 @@ COLOR_PACIENCIA_BAJA = (220, 80, 80)
 #   "rubro"  = dice un rubro que no es de ese lugar
 #   "nombre" = el documento tiene su nombre mal escrito, o el de otro empleado
 #   "aspecto" = no dice nada raro: solo su cara no coincide con la foto del documento
-# cables: cuántos cables hay que reconectar en el apagón | tiempo_cables: segundos para hacerlo
+# apagones: cuántas veces apagan la luz en la noche | cables: cuántos cables hay que
+# reconectar en cada apagón | tiempo_cables: segundos para hacerlo
 TIPOS_TODOS = ["nombre", "piso", "rubro", "aspecto"]
 NIVELES = [
     {"nombre": "Noche 1", "visitantes": 6, "empleados": 3,
      "impostores": 3, "paciencia": 30.0,
      "tipos": ["piso", "rubro", "aspecto"],
-     "cables": 3, "tiempo_cables": 25.0},
+     "apagones": 1, "cables": 3, "tiempo_cables": 25.0},
     {"nombre": "Noche 2", "visitantes": 8, "empleados": 5,
      "impostores": 4, "paciencia": 25.0, "tipos": TIPOS_TODOS,
-     "cables": 4, "tiempo_cables": 22.0},
+     "apagones": 1, "cables": 4, "tiempo_cables": 22.0},
     {"nombre": "Noche 3", "visitantes": 10, "empleados": 8,
      "impostores": 6, "paciencia": 20.0, "tipos": TIPOS_TODOS,
-     "cables": 5, "tiempo_cables": 20.0},
+     "apagones": 2, "cables": 5, "tiempo_cables": 20.0},
 ]
 
 # --- Apagón (minijuego de cables) ---
-# Una vez por noche, un impostor apaga la luz: hay que reconectar los cables.
-APAGON_MIN_ATENDIDOS = 2       # el apagón ocurre después de atender al menos a 2
+# Un impostor apaga la luz (1 o 2 veces por noche): hay que reconectar los cables.
+APAGON_MIN_ATENDIDOS = 2       # un apagón ocurre después de atender al menos a 2
+APAGON_ALPHA = 225             # oscuridad del apagón (0 = nada, 255 = negro total)
 APAGON_RETRASO = 3.0           # segundos después de que el impostor llega
 APAGON_TITILEO = 2.0           # segundos que titila la luz antes de quedar a oscuras
 APAGON_PARPADEO = 0.12         # duración de cada parpadeo (segundos)
 APAGON_PAUSA_FINAL = 0.9       # segundos que se muestra el resultado
-COLOR_NEGRO = (0, 0, 0)
+COLOR_NEGRO = (0, 0, 0)       # color de la oscuridad del apagón
 COLORES_CABLES = [(220, 50, 50), (50, 100, 235), (240, 205, 50),
                   (225, 70, 225), (60, 200, 100)]
 CABLES_X_IZQ = 210             # x de los enchufes de la izquierda

@@ -101,25 +101,33 @@ class Apagon:
         elif self.fase == "listo" and self.reloj >= aj.APAGON_PAUSA_FINAL:
             self.fase = "fin"
 
-    def dibujar(self, pantalla, fuentes):
-        """Dibuja el apagón encima de la escena (la escena ya está dibujada)."""
+    def luz_encendida(self):
+        """Devuelve True si en este momento hay luz (se ve la escena normal).
+
+        Pasa en los instantes en que la luz titila encendida y cuando ya
+        se arregló.
+        """
         if self.fase == "titilar":
-            # titila y en los últimos instantes queda todo a oscuras
-            oscuro = (self.reloj >= aj.APAGON_TITILEO - 0.5
-                      or int(self.reloj / aj.APAGON_PARPADEO) % 2 == 1)
-            if oscuro:
-                pantalla.fill(aj.COLOR_NEGRO)
+            return not self._oscuro()
+        return self.fase == "listo" and self.exito
+
+    def _oscuro(self):
+        """Devuelve True si, durante el titileo, la luz está apagada."""
+        return (self.reloj >= aj.APAGON_TITILEO - 0.5
+                or int(self.reloj / aj.APAGON_PARPADEO) % 2 == 1)
+
+    def dibujar(self, pantalla, fuentes):
+        """Dibuja los carteles y los cables (main.py ya dibujó la escena y,
+        si no hay luz, el velo oscuro encima)."""
+        if self.fase == "titilar":
             return
-        if self.fase == "listo" and self.exito:
-            texto = fuentes["grande"].render("¡LUZ RESTABLECIDA!", True,
-                                             aj.COLOR_ACIERTO)
-            pantalla.blit(texto, texto.get_rect(center=(aj.ANCHO // 2, 270)))
-            return
-        pantalla.fill(aj.COLOR_NEGRO)
         if self.fase == "listo":
-            texto = fuentes["grande"].render("¡SE ACABÓ EL TIEMPO!", True,
-                                             aj.COLOR_ERROR)
-            pantalla.blit(texto, texto.get_rect(center=(aj.ANCHO // 2, 270)))
+            if self.exito:
+                texto, color = "¡LUZ RESTABLECIDA!", aj.COLOR_ACIERTO
+            else:
+                texto, color = "¡SE ACABÓ EL TIEMPO!", aj.COLOR_ERROR
+            imagen = fuentes["grande"].render(texto, True, color)
+            pantalla.blit(imagen, imagen.get_rect(center=(aj.ANCHO // 2, 270)))
             return
         titulo = fuentes["grande"].render("¡UN IMPOSTOR APAGÓ LA LUZ!", True,
                                           aj.COLOR_ERROR)

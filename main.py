@@ -11,9 +11,9 @@ import pygame
 import ajustes as aj
 from cables import Apagon
 from interfaz import Deslizador, punto_en_engranaje
-from pantallas import (crear_botones, dibujar_menu, dibujar_texto,
-                       dibujar_config, dibujar_juego, dibujar_pausa,
-                       dibujar_pantalla_final)
+from pantallas import (crear_botones, dibujar_escenario, dibujar_menu,
+                       dibujar_texto, dibujar_config, dibujar_juego,
+                       dibujar_pausa, dibujar_pantalla_final)
 from partida import Partida
 from utilidades import cargar_sonidos, cargar_imagenes, aplicar_volumen
 
@@ -90,6 +90,9 @@ def main():
     velo = pygame.Surface((aj.ANCHO, aj.ALTO))   # fondo oscuro de los carteles
     velo.set_alpha(aj.VELO_ALPHA)
     velo.fill(aj.COLOR_VELO)
+    velo_apagon = pygame.Surface((aj.ANCHO, aj.ALTO))   # oscuridad del apagón
+    velo_apagon.set_alpha(aj.APAGON_ALPHA)
+    velo_apagon.fill(aj.COLOR_NEGRO)
     imagenes = cargar_imagenes()
     sonidos = cargar_sonidos()
     ui = crear_botones()
@@ -260,8 +263,12 @@ def main():
             dibujar_config(pantalla, fuentes, ui, deslizador, pos_mouse,
                            imagenes)
         elif estado == aj.ESTADO_APAGON:
-            dibujar_juego(pantalla, partida, fuentes, ui, pos_mouse, False,
-                          imagenes)
+            if apagon.luz_encendida():
+                dibujar_juego(pantalla, partida, fuentes, ui, pos_mouse,
+                              False, imagenes)
+            else:                  # sin luz: solo se ven los fondos, oscuros
+                dibujar_escenario(pantalla, imagenes)
+                pantalla.blit(velo_apagon, (0, 0))
             apagon.dibujar(pantalla, fuentes)
         else:
             jugando = estado == aj.ESTADO_JUGANDO

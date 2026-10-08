@@ -44,14 +44,18 @@ def armar_plan_impostores(nivel):
     return plan
 
 
-def elegir_apagon(plan):
-    """Devuelve el número de visitante (empezando en 0) que apaga la luz.
+def elegir_apagones(plan, cantidad):
+    """Devuelve la lista (ordenada) de visitantes que apagan la luz.
 
-    Siempre es un impostor; si se puede, uno que no sea de los primeros.
+    Son 'cantidad' impostores distintos (números desde 0). Se prefieren los
+    que no son de los primeros de la noche.
     """
     impostores = [i for i, es in enumerate(plan) if es]
     tarde = [i for i in impostores if i >= aj.APAGON_MIN_ATENDIDOS]
-    return random.choice(tarde or impostores)
+    temprano = [i for i in impostores if i < aj.APAGON_MIN_ATENDIDOS]
+    random.shuffle(tarde)
+    random.shuffle(temprano)
+    return sorted((tarde + temprano)[:cantidad])
 
 
 def generar_visitante(paciencia=aj.PACIENCIA_BASE, nivel=aj.NIVELES[0],
