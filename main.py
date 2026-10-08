@@ -168,10 +168,11 @@ def main():
                     origen, estado = aj.ESTADO_MENU, aj.ESTADO_CONFIG
 
             elif estado == aj.ESTADO_HISTORIA:
+                historia = aj.HISTORIAS[partida.nivel]   # la de esta noche
                 if clic or tecla:
-                    if letras < len(aj.TEXTO_HISTORIA[pagina]):
-                        letras = len(aj.TEXTO_HISTORIA[pagina])   # mostrar todo
-                    elif pagina + 1 < len(aj.TEXTO_HISTORIA):
+                    if letras < len(historia[pagina]):
+                        letras = len(historia[pagina])   # mostrar todo
+                    elif pagina + 1 < len(historia):
                         pagina, letras = pagina + 1, 0.0
                     else:
                         estado = aj.ESTADO_JUGANDO
@@ -234,7 +235,8 @@ def main():
                 if tecla == pygame.K_RETURN or (
                         clic and ui["siguiente"].bajo_mouse(clic)):
                     partida.iniciar_nivel(partida.nivel + 1)
-                    estado = aj.ESTADO_JUGANDO
+                    pagina, letras = 0, 0.0
+                    estado = aj.ESTADO_HISTORIA       # historia de la noche nueva
 
             elif estado in (aj.ESTADO_FIN, aj.ESTADO_VICTORIA):
                 otra_vez = (ui["reintentar"] if estado == aj.ESTADO_FIN
@@ -297,8 +299,9 @@ def main():
         if estado == aj.ESTADO_MENU:
             dibujar_menu(pantalla, fuentes, ui, pos_mouse, imagenes)
         elif estado == aj.ESTADO_HISTORIA:
-            dibujar_historia(pantalla, velo, fuentes, imagenes, pagina,
-                             int(letras))
+            dibujar_historia(pantalla, velo, fuentes, imagenes,
+                             partida.config_nivel()["nombre"].upper(),
+                             aj.HISTORIAS[partida.nivel], pagina, int(letras))
         elif estado == aj.ESTADO_INSTRUCCIONES:
             dibujar_texto(pantalla, fuentes, "INSTRUCCIONES",
                           aj.TEXTO_INSTRUCCIONES, imagenes)

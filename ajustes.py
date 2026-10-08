@@ -164,21 +164,22 @@ COLOR_PACIENCIA_BAJA = (220, 80, 80)
 # su cara SÍ coincide con la foto (solo se delata por lo que dice o por el papel).
 # pistas: cuántas inconsistencias puede tener un impostor (se elige una al azar)
 # apagones: cuántas veces apagan la luz en la noche | cables: cuántos cables hay que
-# reconectar en cada apagón | tiempo_cables: segundos para hacerlo
+# reconectar en cada apagón | tiempo_cables: segundos para hacerlo (si se acaba,
+# se pierde la noche)
 TIPOS_TODOS = ["nombre", "piso", "rubro", "aspecto"]
 NIVELES = [
     {"nombre": "Noche 1", "visitantes": 6, "empleados": 3,
      "impostores": 3, "paciencia": 30.0,
      "tipos": ["piso", "rubro", "aspecto"], "pistas": [1, 1, 2],
-     "apagones": 1, "cables": 3, "tiempo_cables": 25.0},
+     "apagones": 1, "cables": 3, "tiempo_cables": 15.0},
     {"nombre": "Noche 2", "visitantes": 8, "empleados": 5,
      "impostores": 4, "paciencia": 25.0, "tipos": TIPOS_TODOS,
      "pistas": [1, 2, 2],
-     "apagones": 1, "cables": 4, "tiempo_cables": 22.0},
+     "apagones": 1, "cables": 4, "tiempo_cables": 13.0},
     {"nombre": "Noche 3", "visitantes": 10, "empleados": 8,
      "impostores": 6, "paciencia": 20.0, "tipos": TIPOS_TODOS,
      "pistas": [1, 2, 2, 3],
-     "apagones": 2, "cables": 5, "tiempo_cables": 20.0},
+     "apagones": 2, "cables": 5, "tiempo_cables": 11.0},
 ]
 
 # --- Apagón (minijuego de cables) ---
@@ -276,7 +277,7 @@ TEXTO_INSTRUCCIONES = [
     "",
     "APAGÓN: si un impostor apaga la luz, arrastrá cada cable",
     "hasta el enchufe de su mismo color antes de que se acabe",
-    "el tiempo. Si no lo lográs, perdés una vida.",
+    "el tiempo. Si no lo lográs, perdés la noche.",
     "No tardes: su paciencia se agota. ESC o II pausan.",
 ]
 AYUDA_Y = 140                  # y de la primera línea de las ayudas
@@ -288,23 +289,43 @@ TEXTO_OBJETIVO = [
     "- Dejá entrar solo a los empleados verdaderos (sello APROBADO).",
     "- Rechazá a los impostores (sello RECHAZADO).",
     "- Cada error o tiempo agotado te cuesta una vida.",
+    "- Si no arreglás el apagón a tiempo, perdés la noche.",
     "- Si un impostor apaga la luz, reconectá los cables a tiempo.",
     "- Sobreviví a las 3 noches. Cada una es más difícil.",
 ]
 
-# --- Historia (antes de la primera noche) ---
-# Cada elemento es una pantalla; el texto aparece letra por letra.
-TEXTO_HISTORIA = [
-    "Hace tres meses perdí mi trabajo. El alquiler vencía, la heladera "
-    "estaba vacía y nadie me llamaba.",
-    "Un día vi un aviso pegado en un poste, escrito a mano: «Se necesita "
-    "guardia de seguridad. Sueldo triple. Solo de noche. Sin preguntas.»",
-    "La fábrica no figura en ningún mapa y nadie sabe qué produce. "
-    "Solo abre de noche, y todos los empleados entran por la misma puerta.",
-    "El primer día el jefe me dio un sello verde, uno rojo y una sola regla: "
-    "«Dejá entrar solo a los nuestros. Los otros no son personas.»",
-    "Hoy es mi primera noche en la puerta. Voy a revisar sus papeles, "
-    "mirarles la cara y desconfiar de todos. Esta noche no.",
+# --- Historia (antes de cada noche) ---
+# HISTORIAS[n] son las pantallas que se ven antes de la noche n + 1; el texto
+# aparece letra por letra.
+HISTORIAS = [
+    [   # antes de la noche 1
+        "Hace tres meses perdí mi trabajo. El alquiler vencía, la heladera "
+        "estaba vacía y nadie me llamaba.",
+        "Un día vi un aviso pegado en un poste, escrito a mano: «Se necesita "
+        "guardia de seguridad. Sueldo triple. Solo de noche. Sin preguntas.»",
+        "La fábrica no figura en ningún mapa y nadie sabe qué produce. "
+        "Solo abre de noche, y todos los empleados entran por la misma puerta.",
+        "El primer día el jefe me dio un sello verde, uno rojo y una sola "
+        "regla: «Dejá entrar solo a los nuestros. Los otros no son personas.»",
+        "Hoy es mi primera noche en la puerta. Voy a revisar sus papeles, "
+        "mirarles la cara y desconfiar de todos. Esta noche no.",
+    ],
+    [   # antes de la noche 2
+        "Sobreviví a la primera noche. Cobré el triple, como decía el aviso, "
+        "pero no pude dormir en todo el día.",
+        "En mi casillero encontré una nota sin firma: «Revisá también los "
+        "nombres. A veces copian la cara. A veces copian la letra.»",
+        "El jefe ni me miró: «Esta noche vienen más. Y cada vez tienen menos "
+        "paciencia.» Detrás suyo, una luz parpadeó.",
+    ],
+    [   # antes de la noche 3
+        "Ya lo entendí: cada vez que llega uno de ellos, la luz se apaga. "
+        "Dicen que no soportan que los miren de frente.",
+        "Anoche, cuando volvió la luz, había huellas mojadas en el pasillo. "
+        "Terminaban justo detrás de mi silla.",
+        "Es la última noche del turno. Si me equivoco una vez más, no vuelvo "
+        "a ver el amanecer. Si acierto, cobro y me voy. Esta noche no.",
+    ],
 ]
 HISTORIA_LETRAS_POR_SEG = 45   # velocidad con que aparece el texto
 HISTORIA_ANCHO_LINEA = 52      # caracteres por línea

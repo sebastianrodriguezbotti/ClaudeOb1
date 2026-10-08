@@ -81,14 +81,17 @@ def dibujar_config(pantalla, fuentes, ui, deslizadores, pos_mouse, imagenes):
     ui["volver"].dibujar(pantalla, fuentes["media"], pos_mouse)
 
 
-def dibujar_historia(pantalla, velo, fuentes, imagenes, pagina, letras):
+def dibujar_historia(pantalla, velo, fuentes, imagenes, titulo, paginas,
+                     pagina, letras):
     """Dibuja una pantalla de la historia; el texto aparece letra por letra.
 
-    'letras' es cuántas letras de la página se ven hasta ahora.
+    'titulo' es el nombre de la noche, 'paginas' la lista de textos de esa
+    historia y 'letras' cuántas letras de la página se ven hasta ahora.
     """
     dibujar_escenario(pantalla, imagenes)
     pantalla.blit(velo, (0, 0))
-    texto = aj.TEXTO_HISTORIA[pagina]
+    _texto_centrado(pantalla, fuentes["grande"], titulo, aj.COLOR_TITULO, 120)
+    texto = paginas[pagina]
     restantes = letras
     for i, linea in enumerate(textwrap.wrap(texto, aj.HISTORIA_ANCHO_LINEA)):
         parte = linea[:max(0, restantes)]
@@ -97,7 +100,7 @@ def dibujar_historia(pantalla, velo, fuentes, imagenes, pagina, letras):
             _texto_centrado(pantalla, fuentes["grande"], parte, aj.COLOR_TEXTO,
                             aj.HISTORIA_Y + i * aj.HISTORIA_PASO)
     _texto_centrado(pantalla, fuentes["chica"],
-                    f"{pagina + 1}/{len(aj.TEXTO_HISTORIA)}   "
+                    f"{pagina + 1}/{len(paginas)}   "
                     "Clic o ENTER: seguir · ESC: saltar la historia",
                     aj.COLOR_SECUNDARIO, 495)
 

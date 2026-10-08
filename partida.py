@@ -196,15 +196,15 @@ class Partida:
     def terminar_apagon(self, exito):
         """Aplica el resultado del minijuego de cables.
 
-        Si no se arregló a tiempo se pierde una vida y la racha.
-        Devuelve True si eso termina la partida (sin vidas).
+        Si no se arregló a tiempo se pierde la noche: quedan 0 vidas.
+        Devuelve True si eso termina la partida.
         """
         if exito:
             self.mensaje = "Luz restablecida"
             self.color_mensaje = aj.COLOR_ACIERTO
             return False
-        self.vidas -= 1
+        self.vidas = 0
         self.racha = 0
-        self.mensaje = "No arreglaste la luz a tiempo: perdés una vida"
+        self.mensaje = "No arreglaste la luz a tiempo: perdiste la noche"
         self.color_mensaje = aj.COLOR_ERROR
-        return self.vidas <= 0
+        return True
