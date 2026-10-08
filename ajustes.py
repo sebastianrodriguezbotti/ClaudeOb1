@@ -25,6 +25,7 @@ ESTADO_NIVEL_COMPLETO = "nivel_completo"
 ESTADO_FIN = "fin"
 ESTADO_VICTORIA = "victoria"
 ESTADO_APAGON = "apagon"
+ESTADO_HISTORIA = "historia"
 
 # --- Colores (R, G, B) ---
 COLOR_FONDO = (18, 18, 28)
@@ -203,12 +204,13 @@ COLOR_ENCHUFE = (70, 70, 80)
 # --- Sonidos ---
 SONIDOS_CARPETA = os.path.join(RUTA_BASE, "sonidos")
 NOMBRES_SONIDOS = ["timbre", "acierto", "error", "susto", "papel", "sello",
-                   "apagon", "cable"]
+                   "apagon", "cable", "pasos"]
 FRECUENCIA_MUESTREO = 44100    # muestras por segundo de los .wav
-VOLUMEN = 0.6                  # volumen inicial (0.0 a 1.0)
+VOLUMEN_EFECTOS = 0.35         # volumen inicial de los efectos (0.0 a 1.0)
+VOLUMEN_MUSICA = 0.8           # volumen inicial de la música (0.0 a 1.0)
+MUSICA_PICO = 0.9              # la música se normaliza para llegar a este nivel
 MUSICA_RUTA = os.path.join(SONIDOS_CARPETA, "musica.wav")   # música de tensión
 MUSICA_DURACION = 16           # segundos que dura antes de repetirse
-MUSICA_VOLUMEN_REL = 0.5       # la música suena más bajo que los efectos
 
 # --- Interfaz ---
 # Fuentes: nombre y tamaño de cada una (se cargan una vez en main.py)
@@ -238,8 +240,8 @@ BOTONES = {
     "jugar": ("Jugar", (_CX, 240)),
     "instrucciones": ("Instrucciones", (_CX, 305)),
     "objetivo": ("Objetivo", (_CX, 370)),
-    "sonido": ("Sonido: SÍ", (_CX, 320)),
-    "volver": ("Volver", (_CX, 400)),
+    "sonido": ("Sonido: SÍ", (_CX, 345)),
+    "volver": ("Volver", (_CX, 410)),
     "pausa": ("II", (618, 30), 36, 36),
     "pedir_documento": ("Pedir documento", (_CX_PEDIR, 290), 230, 38),
     "pedir_autorizacion": ("Pedir autorización", (_CX_PEDIR, 336), 230, 38),
@@ -257,24 +259,28 @@ BOTON_ALTO = 48
 ENGRANAJE_CENTRO = (ANCHO - 45, 45)
 ENGRANAJE_RADIO = 22
 SLIDER_X = 240
-SLIDER_Y = 240
 SLIDER_ANCHO = 480
+SLIDER_EFECTOS_Y = 200         # barra del volumen de los efectos
+SLIDER_MUSICA_Y = 275          # barra del volumen de la música
 
 # --- Textos de las pantallas de ayuda (una línea por elemento) ---
 TEXTO_INSTRUCCIONES = [
     "Un empleado llega a la puerta de la fábrica y se presenta.",
     "Compará lo que dice con el EDIFICIO: pisos, áreas y rubros.",
     "Clic en el empleado: pedile su documento (trae foto) y la",
-    "autorización de ingreso. Arrastralos para leerlos.",
-    "Compará su cara con la foto del documento.",
+    "autorización. Arrastralos para leerlos. Compará su cara.",
+    "Un impostor puede fallar en una o en varias cosas a la vez.",
+    "Arrastrá un SELLO sobre la autorización: APROBADO o",
+    "RECHAZADO. Después arrastrá la autorización sellada al",
+    "empleado: se lleva todo junto y ahí se decide.",
     "",
-    "Arrastrá un SELLO sobre la autorización: APROBADO si todo",
-    "coincide, RECHAZADO si algo no cuadra (no se puede cambiar).",
-    "Después arrastrá la autorización sellada hasta el empleado:",
-    "se lleva todo junto, con su documento. Ahí se decide.",
-    "",
-    "No tardes: su paciencia se agota. ESC o II pausan el juego.",
+    "APAGÓN: si un impostor apaga la luz, arrastrá cada cable",
+    "hasta el enchufe de su mismo color antes de que se acabe",
+    "el tiempo. Si no lo lográs, perdés una vida.",
+    "No tardes: su paciencia se agota. ESC o II pausan.",
 ]
+AYUDA_Y = 140                  # y de la primera línea de las ayudas
+AYUDA_PASO = 24                # separación entre líneas de las ayudas
 TEXTO_OBJETIVO = [
     "Sos el guardia de la fábrica y esta noche no podés fallar.",
     "Algunos empleados no son quienes dicen ser: son impostores.",
@@ -285,3 +291,22 @@ TEXTO_OBJETIVO = [
     "- Si un impostor apaga la luz, reconectá los cables a tiempo.",
     "- Sobreviví a las 3 noches. Cada una es más difícil.",
 ]
+
+# --- Historia (antes de la primera noche) ---
+# Cada elemento es una pantalla; el texto aparece letra por letra.
+TEXTO_HISTORIA = [
+    "Hace tres meses perdí mi trabajo. El alquiler vencía, la heladera "
+    "estaba vacía y nadie me llamaba.",
+    "Un día vi un aviso pegado en un poste, escrito a mano: «Se necesita "
+    "guardia de seguridad. Sueldo triple. Solo de noche. Sin preguntas.»",
+    "La fábrica no figura en ningún mapa y nadie sabe qué produce. "
+    "Solo abre de noche, y todos los empleados entran por la misma puerta.",
+    "El primer día el jefe me dio un sello verde, uno rojo y una sola regla: "
+    "«Dejá entrar solo a los nuestros. Los otros no son personas.»",
+    "Hoy es mi primera noche en la puerta. Voy a revisar sus papeles, "
+    "mirarles la cara y desconfiar de todos. Esta noche no.",
+]
+HISTORIA_LETRAS_POR_SEG = 45   # velocidad con que aparece el texto
+HISTORIA_ANCHO_LINEA = 52      # caracteres por línea
+HISTORIA_Y = 190               # y de la primera línea
+HISTORIA_PASO = 34             # separación entre líneas

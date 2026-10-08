@@ -54,29 +54,52 @@ def dibujar_texto(pantalla, fuentes, titulo, lineas, imagenes):
     pygame.draw.rect(pantalla, aj.COLOR_PANEL, aj.PANEL_AYUDA,
                      border_radius=10)
     _texto_centrado(pantalla, fuentes["grande"], titulo, aj.COLOR_TITULO, 95)
-    y = 140
+    y = aj.AYUDA_Y
     for linea in lineas:
         imagen = fuentes["media"].render(linea, True, aj.COLOR_TEXTO)
         pantalla.blit(imagen, (120, y))
-        y += 26
+        y += aj.AYUDA_PASO
     _texto_centrado(pantalla, fuentes["chica"],
                     "Hacé clic o apretá cualquier tecla para volver",
                     aj.COLOR_SECUNDARIO, 465)
 
 
-def dibujar_config(pantalla, fuentes, ui, deslizador, pos_mouse, imagenes):
-    """Dibuja la pantalla de configuración: volumen y sonido."""
+def dibujar_config(pantalla, fuentes, ui, deslizadores, pos_mouse, imagenes):
+    """Dibuja la pantalla de configuración: volúmenes y sonido sí/no."""
     dibujar_escenario(pantalla, imagenes)
     pygame.draw.rect(pantalla, aj.COLOR_PANEL, aj.PANEL_CONFIG,
                      border_radius=10)
     _texto_centrado(pantalla, fuentes["grande"], "CONFIGURACIÓN",
                     aj.COLOR_TITULO, 115)
-    etiqueta = fuentes["media"].render(
-        f"Volumen: {int(deslizador.valor * 100)}%", True, aj.COLOR_TEXTO)
-    pantalla.blit(etiqueta, (aj.SLIDER_X, 190))
-    deslizador.dibujar(pantalla)
+    for nombre, texto in (("efectos", "Efectos"), ("musica", "Música")):
+        deslizador = deslizadores[nombre]
+        etiqueta = fuentes["media"].render(
+            f"{texto}: {int(deslizador.valor * 100)}%", True, aj.COLOR_TEXTO)
+        pantalla.blit(etiqueta, (aj.SLIDER_X, deslizador.rect.y - 35))
+        deslizador.dibujar(pantalla)
     ui["sonido"].dibujar(pantalla, fuentes["media"], pos_mouse)
     ui["volver"].dibujar(pantalla, fuentes["media"], pos_mouse)
+
+
+def dibujar_historia(pantalla, velo, fuentes, imagenes, pagina, letras):
+    """Dibuja una pantalla de la historia; el texto aparece letra por letra.
+
+    'letras' es cuántas letras de la página se ven hasta ahora.
+    """
+    dibujar_escenario(pantalla, imagenes)
+    pantalla.blit(velo, (0, 0))
+    texto = aj.TEXTO_HISTORIA[pagina]
+    restantes = letras
+    for i, linea in enumerate(textwrap.wrap(texto, aj.HISTORIA_ANCHO_LINEA)):
+        parte = linea[:max(0, restantes)]
+        restantes -= len(linea) + 1            # +1 por el espacio cortado
+        if parte:
+            _texto_centrado(pantalla, fuentes["grande"], parte, aj.COLOR_TEXTO,
+                            aj.HISTORIA_Y + i * aj.HISTORIA_PASO)
+    _texto_centrado(pantalla, fuentes["chica"],
+                    f"{pagina + 1}/{len(aj.TEXTO_HISTORIA)}   "
+                    "Clic o ENTER: seguir · ESC: saltar la historia",
+                    aj.COLOR_SECUNDARIO, 495)
 
 
 def dibujar_edificio(pantalla, fuentes, nivel):

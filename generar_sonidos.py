@@ -67,6 +67,25 @@ def _guardar(nombre, muestras):
         archivo.writeframes(datos)
 
 
+def _paso(volumen):
+    """Devuelve un pisotón: un golpe grave y apagado que se desvanece."""
+    total = int(aj.FRECUENCIA_MUESTREO * 0.16)
+    muestras = []
+    suave = 0.0
+    for i in range(total):
+        t = i / aj.FRECUENCIA_MUESTREO
+        suave = 0.8 * suave + 0.2 * random.uniform(-1, 1)   # ruido grave
+        caida = math.exp(-t * 28)
+        golpe = math.sin(2 * math.pi * 75 * t)
+        muestras.append((0.6 * golpe + 1.2 * suave) * caida * volumen)
+    return muestras
+
+
+def _silencio(duracion):
+    """Devuelve 'duracion' segundos de silencio."""
+    return [0.0] * int(aj.FRECUENCIA_MUESTREO * duracion)
+
+
 def generar_musica():
     """Crea sonidos/musica.wav: música de tensión que se repite sin cortes.
 
@@ -95,7 +114,8 @@ def generar_musica():
         fase = t % 1.0
         latido = 0.55 * (golpe(fase) + 0.7 * golpe(fase - 0.28))
         muestras.append(zumbido + agudos + latido)
-    _guardar("musica", muestras)
+    pico = max(abs(m) for m in muestras)
+    _guardar("musica", [m * aj.MUSICA_PICO / pico for m in muestras])
 
 
 def generar_todos():
@@ -110,6 +130,9 @@ def generar_todos():
     _guardar("apagon", _barrido(500, 40, 1.0, ruido=0.5, volumen=0.8))
     _guardar("cable", _onda(880, 0.06, tipo="cuadrada", volumen=0.3)
              + _onda(1320, 0.12))
+    # dos pasos seguidos (1 segundo): se repite mientras el empleado camina
+    _guardar("pasos", _paso(0.9) + _silencio(0.34) + _paso(0.7)
+             + _silencio(0.34))
     generar_musica()
 
 

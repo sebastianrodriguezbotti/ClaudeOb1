@@ -1,9 +1,9 @@
-"""Esta noche no - paso 11: más impostores y apagón con minijuego de cables.
+"""Esta noche no - paso 12: historia inicial, música, pasos y volúmenes aparte.
 
-Estados: menú, instrucciones, objetivo, configuración, jugando, pausa,
-apagón, nivel completo, fin y victoria. Se maneja con el mouse (botones, clic en el
-empleado, arrastrar papeles y sellos) y con el teclado (ENTER = continuar,
-ESC = pausa / volver).
+Estados: menú, historia, instrucciones, objetivo, configuración, jugando,
+pausa, apagón, nivel completo, fin y victoria. Se maneja con el mouse
+(botones, clic en el empleado, arrastrar papeles, sellos y cables) y con el
+teclado (ENTER = continuar, ESC = pausa / volver / saltar la historia).
 """
 
 import pygame
@@ -13,10 +13,11 @@ from cables import Apagon
 from interfaz import Deslizador, punto_en_engranaje
 from pantallas import (crear_botones, dibujar_escenario, dibujar_menu,
                        dibujar_texto, dibujar_config, dibujar_juego,
-                       dibujar_pausa, dibujar_pantalla_final)
+                       dibujar_pausa, dibujar_pantalla_final,
+                       dibujar_historia)
 from partida import Partida
 from utilidades import (cargar_sonidos, cargar_imagenes, aplicar_volumen,
-                        iniciar_musica)
+                        aplicar_volumen_musica, iniciar_musica)
 
 
 def manejar_evento_juego(evento, clic, partida, ui, sonidos):
@@ -98,16 +99,24 @@ def main():
     sonidos = cargar_sonidos()
     iniciar_musica()          # música de tensión de fondo, en bucle
     ui = crear_botones()
-    deslizador = Deslizador(aj.SLIDER_X, aj.SLIDER_Y, aj.SLIDER_ANCHO,
-                            aj.VOLUMEN)
+    # dos barras de volumen independientes: efectos y música
+    deslizadores = {
+        "efectos": Deslizador(aj.SLIDER_X, aj.SLIDER_EFECTOS_Y,
+                              aj.SLIDER_ANCHO, aj.VOLUMEN_EFECTOS),
+        "musica": Deslizador(aj.SLIDER_X, aj.SLIDER_MUSICA_Y,
+                             aj.SLIDER_ANCHO, aj.VOLUMEN_MUSICA),
+    }
     sonido_activo = True
-    aplicar_volumen(sonidos, deslizador.valor, sonido_activo)
+    aplicar_volumen(sonidos, deslizadores["efectos"].valor, sonido_activo)
+    aplicar_volumen_musica(deslizadores["musica"].valor, sonido_activo)
 
     # --- Estado ---
     estado = aj.ESTADO_MENU
     origen = aj.ESTADO_MENU   # a dónde vuelven instrucciones y configuración
     partida = Partida()
-    apagon = None   # minijuego de cables (se crea cuando un impostor apaga la luz)
+    apagon = None             # minijuego de cables (se crea al apagarse la luz)
+    pagina, letras = 0, 0.0   # historia: página actual y letras visibles
+    pasos_sonando = False
 
     corriendo = True
     while corriendo:
@@ -135,6 +144,8 @@ def main():
                     estado = aj.ESTADO_JUGANDO
                 elif estado == aj.ESTADO_APAGON:
                     pass          # no se puede pausar ni salir en el apagón
+                elif estado == aj.ESTADO_HISTORIA:
+                    estado = aj.ESTADO_JUGANDO     # ESC salta la historia
                 elif estado in (aj.ESTADO_INSTRUCCIONES, aj.ESTADO_OBJETIVO,
                                 aj.ESTADO_CONFIG):
                     estado = origen
@@ -145,30 +156,48 @@ def main():
                 if (clic and ui["jugar"].bajo_mouse(clic)) or \
                         tecla == pygame.K_RETURN:
                     partida = Partida()
-                    estado = aj.ESTADO_JUGANDO
+                    pagina, letras = 0, 0.0
+                    estado = aj.ESTADO_HISTORIA
                 elif clic and ui["instrucciones"].bajo_mouse(clic):
                     origen, estado = aj.ESTADO_MENU, aj.ESTADO_INSTRUCCIONES
                 elif clic and ui["objetivo"].bajo_mouse(clic):
                     origen, estado = aj.ESTADO_MENU, aj.ESTADO_OBJETIVO
                 elif clic and punto_en_engranaje(clic):
-                    deslizador.arrastrando = False
+                    for deslizador in deslizadores.values():
+                        deslizador.arrastrando = False
                     origen, estado = aj.ESTADO_MENU, aj.ESTADO_CONFIG
+
+            elif estado == aj.ESTADO_HISTORIA:
+                if clic or tecla:
+                    if letras < len(aj.TEXTO_HISTORIA[pagina]):
+                        letras = len(aj.TEXTO_HISTORIA[pagina])   # mostrar todo
+                    elif pagina + 1 < len(aj.TEXTO_HISTORIA):
+                        pagina, letras = pagina + 1, 0.0
+                    else:
+                        estado = aj.ESTADO_JUGANDO
 
             elif estado in (aj.ESTADO_INSTRUCCIONES, aj.ESTADO_OBJETIVO):
                 if clic or tecla:            # clic o cualquier tecla: volver
                     estado = origen
 
             elif estado == aj.ESTADO_CONFIG:
-                accion = deslizador.manejar_evento(evento)
-                if accion:
-                    aplicar_volumen(sonidos, deslizador.valor, sonido_activo)
-                    if accion == "soltado":
-                        sonidos["acierto"].play()   # prueba del volumen
+                for nombre, deslizador in deslizadores.items():
+                    accion = deslizador.manejar_evento(evento)
+                    if accion:
+                        aplicar_volumen(sonidos, deslizadores["efectos"].valor,
+                                        sonido_activo)
+                        aplicar_volumen_musica(deslizadores["musica"].valor,
+                                               sonido_activo)
+                        if accion == "soltado" and nombre == "efectos":
+                            sonidos["acierto"].play()   # prueba del volumen
                 if clic and ui["sonido"].bajo_mouse(clic):
                     sonido_activo = not sonido_activo
                     ui["sonido"].texto = ("Sonido: SÍ" if sonido_activo
                                           else "Sonido: NO")
-                    aplicar_volumen(sonidos, deslizador.valor, sonido_activo)
+                    aplicar_volumen(sonidos, deslizadores["efectos"].valor,
+                                    sonido_activo)
+                    aplicar_volumen_musica(deslizadores["musica"].valor,
+                                           sonido_activo)
                 elif (clic and ui["volver"].bajo_mouse(clic)) or \
                         tecla == pygame.K_RETURN:
                     estado = origen
@@ -188,7 +217,8 @@ def main():
                 elif clic and ui["p_instrucciones"].bajo_mouse(clic):
                     origen, estado = aj.ESTADO_PAUSA, aj.ESTADO_INSTRUCCIONES
                 elif clic and ui["p_volumen"].bajo_mouse(clic):
-                    deslizador.arrastrando = False
+                    for deslizador in deslizadores.values():
+                        deslizador.arrastrando = False
                     origen, estado = aj.ESTADO_PAUSA, aj.ESTADO_CONFIG
                 elif clic and ui["p_inicio"].bajo_mouse(clic):
                     estado = aj.ESTADO_MENU
@@ -217,7 +247,9 @@ def main():
                     estado = aj.ESTADO_MENU
 
         # 2) ACTUALIZAR (solo mientras se juega: en pausa todo queda quieto)
-        if estado == aj.ESTADO_JUGANDO:
+        if estado == aj.ESTADO_HISTORIA:
+            letras += aj.HISTORIA_LETRAS_POR_SEG * dt   # el texto va apareciendo
+        elif estado == aj.ESTADO_JUGANDO:
             visitante = partida.visitante
             if visitante.actualizar(dt):   # True al llegar a la puerta
                 sonidos["timbre"].play()
@@ -251,10 +283,22 @@ def main():
                 else:
                     estado = aj.ESTADO_JUGANDO
 
+        # Pasos: suenan en bucle solo mientras un empleado camina hacia la puerta
+        caminando = (estado == aj.ESTADO_JUGANDO
+                     and not partida.visitante.llego())
+        if caminando and not pasos_sonando:
+            sonidos["pasos"].play(-1)
+        elif pasos_sonando and not caminando:
+            sonidos["pasos"].stop()
+        pasos_sonando = caminando
+
         # 4) DIBUJAR
         pantalla.fill(aj.COLOR_FONDO)
         if estado == aj.ESTADO_MENU:
             dibujar_menu(pantalla, fuentes, ui, pos_mouse, imagenes)
+        elif estado == aj.ESTADO_HISTORIA:
+            dibujar_historia(pantalla, velo, fuentes, imagenes, pagina,
+                             int(letras))
         elif estado == aj.ESTADO_INSTRUCCIONES:
             dibujar_texto(pantalla, fuentes, "INSTRUCCIONES",
                           aj.TEXTO_INSTRUCCIONES, imagenes)
@@ -262,7 +306,7 @@ def main():
             dibujar_texto(pantalla, fuentes, "OBJETIVO", aj.TEXTO_OBJETIVO,
                           imagenes)
         elif estado == aj.ESTADO_CONFIG:
-            dibujar_config(pantalla, fuentes, ui, deslizador, pos_mouse,
+            dibujar_config(pantalla, fuentes, ui, deslizadores, pos_mouse,
                            imagenes)
         elif estado == aj.ESTADO_APAGON:
             if apagon.luz_encendida():

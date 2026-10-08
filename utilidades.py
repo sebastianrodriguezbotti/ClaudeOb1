@@ -168,7 +168,7 @@ def cargar_sonidos():
     for nombre in aj.NOMBRES_SONIDOS:
         sonido = pygame.mixer.Sound(
             os.path.join(aj.SONIDOS_CARPETA, f"{nombre}.wav"))
-        sonido.set_volume(aj.VOLUMEN)
+        sonido.set_volume(aj.VOLUMEN_EFECTOS)
         sonidos[nombre] = sonido
     return sonidos
 
@@ -185,14 +185,23 @@ def iniciar_musica():
 
 
 def aplicar_volumen(sonidos, volumen, activo):
-    """Ajusta el volumen de todos los sonidos y devuelve el volumen aplicado.
+    """Ajusta el volumen de los EFECTOS y devuelve el volumen aplicado.
 
     Si el sonido está desactivado, el volumen efectivo es 0.
     """
     efectivo = volumen if activo else 0.0
     for sonido in sonidos.values():
         sonido.set_volume(efectivo)
-    pygame.mixer.music.set_volume(efectivo * aj.MUSICA_VOLUMEN_REL)
+    return efectivo
+
+
+def aplicar_volumen_musica(volumen, activo):
+    """Ajusta el volumen de la MÚSICA (aparte de los efectos).
+
+    Devuelve el volumen aplicado: 0 si el sonido está desactivado.
+    """
+    efectivo = volumen if activo else 0.0
+    pygame.mixer.music.set_volume(efectivo)
     return efectivo
 
 
