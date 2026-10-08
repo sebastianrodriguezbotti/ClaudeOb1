@@ -2,7 +2,7 @@
 
 Juego de terror y deducción hecho con Python y pygame. Sos el guardia de la puerta de una fábrica durante tres noches: los empleados llegan a entrar a trabajar, pero algunos **no son quienes dicen ser**. Tenés que descubrirlos antes de que sea tarde.
 
-> **Estudiante:** Sebastián Rodríguez Botti · N.º 288211 · 
+> **Estudiante:** Sebastián Rodríguez Botti · N.º 288211 
 > **Asignatura:** Programación 2 · Obligatorio 1
 
 ---
@@ -13,11 +13,12 @@ Sobrevivir a las **3 noches**. En cada noche llega una cantidad de empleados a l
 
 - **Aprobá** (sello verde) a los empleados verdaderos.
 - **Rechazá** (sello rojo) a los impostores.
-- Cada error, o cada empleado que se impacienta porque tardaste demasiado, **cuesta una vida**. Tenés 3 vidas por noche.
+- Cada error, cada empleado que se impacienta porque tardaste demasiado, **cuesta una vida**. Un apagón que no arreglás a tiempo te hace perder la noche. Tenés 3 vidas por noche.
 - Si te quedás sin vidas, perdés la partida. Si terminás la noche 3, ganás.
 
 ## Cómo se juega
 
+0. Antes de cada noche se cuenta una breve **historia**: al apretar **Jugar**, por qué el protagonista terminó de guardia en una fábrica que solo abre de noche; antes de las noches 2 y 3, cómo sigue lo que pasa en la fábrica. Se avanza con clic o `ENTER` y se salta con `ESC`.
 1. Un empleado camina hasta la puerta y se presenta: dice su nombre, su rubro y a qué piso y área va.
 2. Hacé **clic sobre el empleado** y elegí **Pedir documento** o **Pedir autorización**. Los papeles aparecen en pantalla y se pueden **arrastrar** con el mouse.
 3. Compará todo con el panel **EDIFICIO** (arriba a la derecha), que dice qué área hay en cada piso y qué rubro trabaja en cada una:
@@ -26,6 +27,10 @@ Sobrevivir a las **3 noches**. En cada noche llega una cantidad de empleados a l
    - ¿La cara del empleado coincide con la **foto del documento**?
 4. Arrastrá un **sello** (APROBADO o RECHAZADO, abajo a la derecha) sobre la autorización. Una vez sellada, no se puede cambiar.
 5. **Entregá** la autorización sellada arrastrándola hasta el empleado: se lleva todo lo que tengas afuera (también su documento) y ahí queda decidido.
+
+### El apagón
+
+En cada noche un impostor **apaga la luz** (una vez en las noches 1 y 2, y **dos veces** en la noche 3): la pantalla titila y queda casi a oscuras, apenas se ven los fondos. Puede pasar en cualquier momento mientras atendés a un impostor. Hay que **arrastrar cada cable** de la izquierda hasta el enchufe **del mismo color** de la derecha antes de que se acabe el tiempo. Si lo lográs, vuelve la luz y seguís; si no, **perdés la noche** (derrota). Durante el apagón la paciencia del empleado está congelada y no se puede pausar.
 
 Cada empleado tiene una **barra de paciencia**. Cuando se agota, lo ves enojado y, si llega a cero, perdés una vida. A medida que acumulás aciertos seguidos (racha), los siguientes empleados esperan menos.
 
@@ -36,15 +41,22 @@ Cada empleado tiene una **barra de paciencia**. Cuando se agota, lo ves enojado 
 
 ### Niveles (noches)
 
-| Noche | Empleados | Personajes en el edificio | Impostores | Paciencia inicial |
-|---|---|---|---|---|
-| 1 | 6 | 3 | 35 % | 30 s |
-| 2 | 8 | 5 | 45 % | 25 s |
-| 3 | 10 | 8 | 50 % | 20 s |
+| Noche | Empleados | Personajes en el edificio | Impostores (cantidad exacta) | Paciencia inicial | Apagones y cables |
+|---|---|---|---|---|---|
+| 1 | 6 | 3 | 3 | 30 s | 1 apagón, 3 cables (15 s) |
+| 2 | 8 | 5 | 4 | 25 s | 1 apagón, 4 cables (13 s) |
+| 3 | 10 | 8 | 6 | 20 s | 2 apagones, 5 cables (11 s) |
 
 ### Cómo se delata un impostor
 
-Un impostor tiene **una sola** inconsistencia: dice un **piso** que no corresponde a su área, dice un **rubro** que no es de esa área, el **nombre del documento** está mal escrito o es el de otro empleado, o no dice nada raro y solo su **cara no coincide con la foto** del documento. El nombre mal escrito aparece desde la noche 2.
+Un impostor tiene **una o varias pistas a la vez** (hasta 2 en las noches 1 y 2, y hasta 3 en la noche 3):
+
+- Dice un **piso** que no corresponde a su área.
+- Dice un **rubro** que no es de esa área.
+- El **nombre del documento** tiene una letra mal (cambiada, repetida o que falta) o es el de otro empleado. Es la pista más frecuente.
+- Su **cara no coincide** con la foto del documento.
+
+Las pistas se combinan al azar: un impostor puede tener la cara correcta y delatarse solo por el nombre o el piso, o tener la cara distinta y además un dato mal. Por eso hay que revisar **todo**, aunque la cara parezca bien.
 
 ## Controles
 
@@ -53,13 +65,15 @@ Un impostor tiene **una sola** inconsistencia: dice un **piso** que no correspon
 | Pedir documento o autorización | Clic en el empleado y elegir la opción |
 | Mover documento, autorización o sellos | Arrastrar con el mouse |
 | Sellar | Soltar un sello sobre la autorización |
+| Arreglar el apagón | Arrastrar cada cable al enchufe del mismo color |
 | Entregar | Soltar la autorización sellada sobre el empleado |
 | Pausa | Botón **II** (arriba) o tecla `ESC` |
+| Avanzar la historia / saltarla | Clic o `ENTER` / `ESC` |
 | Continuar / jugar de nuevo | `ENTER` o clic en el botón |
 | Volver atrás | `ESC` |
 | Salir | Cerrar la ventana con la X, o `ESC` en el menú |
 
-El menú inicial tiene **Jugar**, **Instrucciones**, **Objetivo** y un engranaje de **configuración** (volumen y sonido sí/no). La pausa permite continuar, ver las instrucciones, cambiar el volumen o volver al inicio.
+El menú inicial tiene **Jugar**, **Instrucciones**, **Objetivo** y un engranaje de **configuración** (volumen de los efectos, volumen de la música —cada uno por separado— y sonido sí/no). La pausa permite continuar, ver las instrucciones, cambiar el volumen o volver al inicio.
 
 ## Cómo se ejecuta
 
@@ -83,13 +97,14 @@ Si falta algún archivo `.wav` de `sonidos/`, el juego los genera solo al arranc
 | `main.py` | Punto de entrada: crea la ventana, carga los recursos una sola vez y ejecuta el bucle principal (eventos, actualizar, resolver, dibujar). Maneja los estados del juego. |
 | `ajustes.py` | Todas las constantes: colores, tamaños, velocidades, fuentes, botones, niveles, empleados, lugares, textos de ayuda. |
 | `partida.py` | Clase `Partida`: puntaje, vidas, racha, noche actual, papeles en pantalla y reglas para resolver cada empleado. |
+| `cables.py` | Clase `Apagon`: el minijuego de cables (titileo, oscuridad, arrastrar cables, tiempo). |
 | `visitante.py` | Clase `Visitante`: el empleado que llega a la puerta (movimiento, paciencia, imagen según su estado). |
 | `objetos.py` | Clases `Arrastrable`, `Objeto` (documento y autorización) y `Sello`. Todo lo que se arrastra con el mouse. |
 | `interfaz.py` | Clases `Boton` y `Deslizador`, y el dibujo del engranaje. |
 | `pantallas.py` | Funciones que dibujan cada pantalla: menú, ayudas, configuración, escena de juego, pausa y carteles finales. |
 | `utilidades.py` | Funciones con lógica y carga de recursos: generar empleados al azar, decidir si el sello fue correcto, puntaje, paciencia, mensajes, carga de sonidos e imágenes. |
 | `generar_sonidos.py` | Genera los efectos de sonido (`.wav`) con ondas y ruido, sin bibliotecas externas. |
-| `sonidos/` | Los efectos: `timbre`, `acierto`, `error`, `susto`, `papel` y `sello`. |
+| `sonidos/` | Los efectos y la música de tensión (`musica.wav`, se repite todo el juego): `timbre`, `acierto`, `error`, `susto`, `papel`, `sello`, `apagon`, `cable` y `pasos` (se repite mientras un empleado camina hacia la puerta). |
 | `imagenes/` | Fondos y personajes (ver abajo). |
 
 ### Imágenes
@@ -101,7 +116,7 @@ La carpeta `imagenes/` tiene dos fondos y cuatro versiones de cada uno de los 8 
 
 ## Origen y licencia de los recursos
 
-- **Sonidos:** generados por código en este mismo proyecto (`generar_sonidos.py`) con ondas seno, cuadradas y ruido. No se usaron sonidos de terceros.
+- **Sonidos y música:** generados por código en este mismo proyecto (`generar_sonidos.py`) con ondas seno, cuadradas y ruido. No se usaron sonidos de terceros.
 - **Imágenes:** generadas con Midjourney y ChatGPT; los retoques finales se hicieron en Photoshop.
 - **Fuente:** `consolas`, que es una fuente del sistema, no se incluye en el proyecto.
 
@@ -125,4 +140,4 @@ Referencia (APA 7):
 
 ## Repositorio
 
-⚠ COMPLETAR: enlace al repositorio de GitHub: `https://github.com/<usuario>/<repositorio>`
+⚠ COMPLETAR: enlace al repositorio de GitHub: `https://github.com/sebastianrodriguezbotti/ClaudeOb1`

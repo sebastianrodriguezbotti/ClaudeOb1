@@ -102,26 +102,30 @@ PISOS = sorted({d["piso"] for d in LUGARES.values()})
 # Cada uno tiene un lugar y un rubro distintos.
 EMPLEADOS = [
     {"nombre": "Marta Gómez", "imagen": "marta", "genero": "f",
-     "lugar": "Laboratorio"},
+     "lugar": "Enfermería"},
     {"nombre": "Hugo Pereira", "imagen": "hugo", "genero": "m",
      "lugar": "Seguridad"},
     {"nombre": "Lucía Ferrari", "imagen": "lucia", "genero": "f",
      "lugar": "Recepción"},
-    {"nombre": "Tomás Rodríguez", "imagen": "tomas", "genero": "m",
+    {"nombre": "Tomás Fernández", "imagen": "tomas", "genero": "m",
      "lugar": "Taller"},
     {"nombre": "Elena Sousa", "imagen": "elena", "genero": "f",
      "lugar": "Depósito"},
-    {"nombre": "Gonzalo Rodríguez", "imagen": "gonzalo", "genero": "m",
+    {"nombre": "Gonzalo Silva", "imagen": "gonzalo", "genero": "m",
      "lugar": "Oficinas"},
-    {"nombre": "Paula Rodríguez", "imagen": "paula", "genero": "f",
+    {"nombre": "Paula González", "imagen": "paula", "genero": "f",
      "lugar": "Comedor"},
-    {"nombre": "Julia Rodríguez", "imagen": "julia", "genero": "f",
-     "lugar": "Enfermería"},
+    {"nombre": "Julia Olivera", "imagen": "julia", "genero": "f",
+     "lugar": "Laboratorio"},
 ]
 # Letras que se confunden fácil: así se escribe mal un nombre en el documento.
-CAMBIOS_PARECIDOS = [("ó", "o"), ("í", "i"), ("á", "a"), ("é", "e"),
-                     ("ú", "u"), ("z", "s"), ("s", "z"), ("y", "i"),
-                     ("i", "y"), ("b", "v"), ("v", "b"), ("ll", "y")]
+CAMBIOS_PARECIDOS = [("z", "s"), ("s", "z"), ("c", "s"), ("s", "c"),
+                     ("y", "i"), ("i", "y"), ("b", "v"), ("v", "b"),
+                     ("g", "j"), ("j", "g"), ("ll", "y"), ("a", "e"),
+                     ("e", "a"), ("o", "u"), ("u", "o")]
+# Un impostor con pista de "nombre": qué tan seguido la tiene y cómo es
+PROB_NOMBRE_MAL = 0.65         # chance de que un impostor tenga el nombre mal
+PROB_ESCRITO_MAL = 0.85        # si es así: nombre con una letra mal (si no, el de otro)
 
 # --- Documento, autorización y sellos ---
 TIPOS_OBJETO = ("documento", "autorizacion")     # lo que se le puede pedir
@@ -158,7 +162,7 @@ COLOR_PACIENCIA_BAJA = (220, 80, 80)
 # paciencia: segundos iniciales | tipos: cómo puede delatarse un impostor:
 #   "piso"   = dice un piso que no corresponde a su lugar de trabajo
 #   "rubro"  = dice un rubro que no es de ese lugar
-#   "nombre" = el documento tiene su nombre mal escrito, o el de otro empleado
+#   "nombre" = el documento tiene su nombre mal escrito (una letra mal), o el de otro empleado
 #   "aspecto" = su cara no coincide con la foto del documento
 # Un impostor tiene una o varias de estas pistas a la vez. Si "aspecto" no está,
 # su cara SÍ coincide con la foto (solo se delata por lo que dice o por el papel).
@@ -170,7 +174,7 @@ TIPOS_TODOS = ["nombre", "piso", "rubro", "aspecto"]
 NIVELES = [
     {"nombre": "Noche 1", "visitantes": 6, "empleados": 3,
      "impostores": 3, "paciencia": 30.0,
-     "tipos": ["piso", "rubro", "aspecto"], "pistas": [1, 1, 2],
+     "tipos": ["piso", "rubro", "aspecto", "nombre"], "pistas": [1, 1, 2],
      "apagones": 1, "cables": 3, "tiempo_cables": 15.0},
     {"nombre": "Noche 2", "visitantes": 8, "empleados": 5,
      "impostores": 4, "paciencia": 25.0, "tipos": TIPOS_TODOS,

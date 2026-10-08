@@ -12,24 +12,24 @@ from visitante import Visitante
 
 
 def alterar_nombre(nombre):
-    """Devuelve el nombre con UNA letra cambiada por otra parecida.
+    """Devuelve el nombre con UNA letra mal.
 
-    Ej.: "Marta Gómez" -> "Marta Gomez" o "Marta Gómes". Si no hay ninguna
-    letra confundible, intercambia dos letras vecinas del final.
+    Puede ser una letra cambiada por otra parecida (z/s, b/v, y/i...), una
+    letra repetida o una letra que falta. Ej.: "Hugo Pereira" ->
+    "Hugo Perreira", "Hugo Pereyra" o "Hugo Pereia". Nunca devuelve el
+    mismo nombre.
     """
-    opciones = []
-    for viejo, nuevo in aj.CAMBIOS_PARECIDOS:
+    opciones = set()
+    for viejo, nuevo in aj.CAMBIOS_PARECIDOS:          # letra parecida
         for hallazgo in re.finditer(viejo, nombre):
-            opciones.append((hallazgo.start(), len(viejo), nuevo))
-    if opciones:
-        inicio, largo, nuevo = random.choice(opciones)
-        return nombre[:inicio] + nuevo + nombre[inicio + largo:]
-    letras = list(nombre)
-    for i in range(len(letras) - 2, 0, -1):
-        if letras[i] != letras[i + 1]:
-            letras[i], letras[i + 1] = letras[i + 1], letras[i]
-            break
-    return "".join(letras)
+            opciones.add(nombre[:hallazgo.start()] + nuevo
+                         + nombre[hallazgo.end():])
+    for i, letra in enumerate(nombre):                 # repetida o faltante
+        if letra.isalpha() and i > 0 and nombre[i - 1] != " ":
+            opciones.add(nombre[:i] + letra + nombre[i:])
+            opciones.add(nombre[:i] + nombre[i + 1:])
+    opciones.discard(nombre)
+    return random.choice(sorted(opciones))
 
 
 def armar_plan_impostores(nivel):
@@ -83,13 +83,17 @@ def generar_visitante(paciencia=aj.PACIENCIA_BASE, nivel=aj.NIVELES[0],
 
     # un impostor tiene una o varias pistas a la vez (se combinan al azar)
     cantidad = min(random.choice(nivel["pistas"]), len(nivel["tipos"]))
-    tipos = random.sample(nivel["tipos"], cantidad)
+    tipos = []
+    if "nombre" in nivel["tipos"] and random.random() < aj.PROB_NOMBRE_MAL:
+        tipos.append("nombre")          # el nombre mal es la pista más común
+    otros = [tipo for tipo in nivel["tipos"] if tipo not in tipos]
+    tipos += random.sample(otros, cantidad - len(tipos))
     nombre_documento = rubro_documento = None
     motivos = []
     for tipo in tipos:
         if tipo == "nombre":
-            if random.random() < 0.5:
-                nombre_documento = alterar_nombre(nombre)      # mal escrito
+            if random.random() < aj.PROB_ESCRITO_MAL:
+                nombre_documento = alterar_nombre(nombre)      # una letra mal
             else:                                              # el de otro empleado
                 nombre_documento = random.choice(
                     [e["nombre"] for e in empleados if e["nombre"] != nombre])
