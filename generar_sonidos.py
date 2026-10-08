@@ -67,6 +67,37 @@ def _guardar(nombre, muestras):
         archivo.writeframes(datos)
 
 
+def generar_musica():
+    """Crea sonidos/musica.wav: música de tensión que se repite sin cortes.
+
+    Mezcla un zumbido grave (dos tonos casi iguales que "laten"), dos tonos
+    agudos que suben y bajan despacio, y un latido de corazón cada segundo.
+    Todas las frecuencias dan un número entero de ciclos en MUSICA_DURACION
+    segundos, así que al repetirse no se escucha ningún corte.
+    """
+    fm = aj.FRECUENCIA_MUESTREO
+    total = fm * aj.MUSICA_DURACION
+    dos_pi = 2 * math.pi
+
+    def golpe(fase):
+        """Un golpe grave de latido: 'fase' son los segundos desde que empezó."""
+        if fase < 0 or fase > 0.4:
+            return 0.0
+        return math.exp(-fase * 14) * math.sin(dos_pi * 48 * fase)
+
+    muestras = []
+    for i in range(total):
+        t = i / fm
+        respiro = 0.65 + 0.35 * math.sin(dos_pi * 0.25 * t)   # sube y baja
+        zumbido = (math.sin(dos_pi * 55 * t) + math.sin(dos_pi * 58 * t)) * 0.18 * respiro
+        subida = 0.5 + 0.5 * math.sin(dos_pi * t / aj.MUSICA_DURACION)
+        agudos = (math.sin(dos_pi * 440 * t) + math.sin(dos_pi * 622 * t)) * 0.02 * subida
+        fase = t % 1.0
+        latido = 0.55 * (golpe(fase) + 0.7 * golpe(fase - 0.28))
+        muestras.append(zumbido + agudos + latido)
+    _guardar("musica", muestras)
+
+
 def generar_todos():
     """Crea todos los sonidos del juego."""
     random.seed(7)  # el ruido sale igual cada vez
@@ -79,6 +110,7 @@ def generar_todos():
     _guardar("apagon", _barrido(500, 40, 1.0, ruido=0.5, volumen=0.8))
     _guardar("cable", _onda(880, 0.06, tipo="cuadrada", volumen=0.3)
              + _onda(1320, 0.12))
+    generar_musica()
 
 
 if __name__ == "__main__":

@@ -63,12 +63,11 @@ def generar_visitante(paciencia=aj.PACIENCIA_BASE, nivel=aj.NIVELES[0],
     """Crea un empleado al azar; 'es_impostor' dice si es verdadero o impostor.
 
     Elige uno de los primeros N empleados de ajustes.EMPLEADOS
-    ('evitar_imagen' evita repetir al anterior). Un impostor usa las
-    imágenes de "impostor" (su cara no coincide con la foto del documento)
-    y además tiene UNA inconsistencia: dice un piso que no corresponde,
-    dice un rubro que no es de ese lugar, el nombre de su documento está
-    mal (mal escrito o de otro empleado), o ninguna ("aspecto": solo se
-    nota la cara).
+    ('evitar_imagen' evita repetir al anterior).     y además tiene UNA O VARIAS inconsistencias combinadas: dice un piso que
+    no corresponde, dice un rubro que no es de ese lugar, el nombre de su
+    documento está mal (mal escrito o de otro empleado), o su cara no
+    coincide con la foto ("aspecto"). Si "aspecto" no es una de ellas, el
+    impostor tiene la cara del empleado verdadero.
     """
     empleados = aj.EMPLEADOS[:nivel["empleados"]]
     candidatos = [e for e in empleados if e["imagen"] != evitar_imagen]
@@ -82,30 +81,36 @@ def generar_visitante(paciencia=aj.PACIENCIA_BASE, nivel=aj.NIVELES[0],
         return Visitante(nombre, rubro, lugar, piso, datos["imagen"], False,
                          paciencia=paciencia)
 
-    tipo = random.choice(nivel["tipos"])
+    # un impostor tiene una o varias pistas a la vez (se combinan al azar)
+    cantidad = min(random.choice(nivel["pistas"]), len(nivel["tipos"]))
+    tipos = random.sample(nivel["tipos"], cantidad)
     nombre_documento = rubro_documento = None
-    if tipo == "nombre":
-        if random.random() < 0.5:
-            nombre_documento = alterar_nombre(nombre)      # mal escrito
-        else:                                              # el de otro empleado
-            nombre_documento = random.choice(
-                [e["nombre"] for e in empleados if e["nombre"] != nombre])
-        motivo = f"El documento decía {nombre_documento}, no {nombre}"
-    elif tipo == "piso":
-        falso = random.choice([p for p in aj.PISOS if p != piso])
-        motivo = f"{lugar} está en el piso {piso}, no en el {falso}"
-        piso = falso
-    elif tipo == "aspecto":
-        motivo = "Su cara no coincidía con la foto del documento"
-    else:
-        otro = random.choice([e for e in empleados if e["lugar"] != lugar])
-        falso = aj.LUGARES[otro["lugar"]]["rubro"][indice]
-        motivo = (f"Dijo ser {falso}, pero va {info['donde']} "
-                  f"({info['personal']})")
-        rubro_documento = rubro      # su documento dice el rubro verdadero
-        rubro = falso
+    motivos = []
+    for tipo in tipos:
+        if tipo == "nombre":
+            if random.random() < 0.5:
+                nombre_documento = alterar_nombre(nombre)      # mal escrito
+            else:                                              # el de otro empleado
+                nombre_documento = random.choice(
+                    [e["nombre"] for e in empleados if e["nombre"] != nombre])
+            motivos.append(f"El documento decía {nombre_documento}, "
+                           f"no {nombre}")
+        elif tipo == "piso":
+            falso = random.choice([p for p in aj.PISOS if p != piso])
+            motivos.append(f"{lugar} está en el piso {piso}, no en el {falso}")
+            piso = falso
+        elif tipo == "aspecto":
+            motivos.append("Su cara no coincidía con la foto del documento")
+        else:
+            otro = random.choice([e for e in empleados if e["lugar"] != lugar])
+            falso = aj.LUGARES[otro["lugar"]]["rubro"][indice]
+            motivos.append(f"Dijo ser {falso}, pero va {info['donde']} "
+                           f"({info['personal']})")
+            rubro_documento = rubro      # su documento dice el rubro verdadero
+            rubro = falso
     return Visitante(nombre, rubro, lugar, piso, datos["imagen"], True,
-                     motivo, paciencia, nombre_documento, rubro_documento)
+                     ". ".join(motivos), paciencia, nombre_documento,
+                     rubro_documento, "aspecto" in tipos)
 
 
 def decision_correcta(visitante, permitir):
@@ -168,6 +173,17 @@ def cargar_sonidos():
     return sonidos
 
 
+def iniciar_musica():
+    """Carga la música de tensión (la genera si falta) y la repite sin parar."""
+    if not os.path.exists(aj.MUSICA_RUTA):
+        generar_sonidos.generar_musica()
+    try:
+        pygame.mixer.music.load(aj.MUSICA_RUTA)
+        pygame.mixer.music.play(-1)       # -1 = se repite para siempre
+    except pygame.error as error:
+        print("[aviso] No se pudo reproducir la música:", error)
+
+
 def aplicar_volumen(sonidos, volumen, activo):
     """Ajusta el volumen de todos los sonidos y devuelve el volumen aplicado.
 
@@ -176,6 +192,7 @@ def aplicar_volumen(sonidos, volumen, activo):
     efectivo = volumen if activo else 0.0
     for sonido in sonidos.values():
         sonido.set_volume(efectivo)
+    pygame.mixer.music.set_volume(efectivo * aj.MUSICA_VOLUMEN_REL)
     return efectivo
 
 

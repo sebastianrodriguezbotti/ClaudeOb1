@@ -16,6 +16,8 @@ class Visitante:
         imagen_id: prefijo de sus imágenes (qué personaje es).
         nombre_documento, rubro_documento: lo que figura en su documento.
         es_impostor: True si es un monstruo disfrazado.
+        cara_falsa: True si su cara no coincide con la foto del documento
+            (un impostor puede tener la cara de verdad y delatarse por otra cosa).
         motivo: qué lo delata (None si es verdadero).
         paciencia_max / paciencia: segundos totales y restantes de espera.
         x: centro horizontal de la imagen (float para moverse suave).
@@ -24,7 +26,8 @@ class Visitante:
 
     def __init__(self, nombre, rubro, lugar, piso, imagen_id, es_impostor,
                  motivo=None, paciencia=aj.PACIENCIA_BASE,
-                 nombre_documento=None, rubro_documento=None):
+                 nombre_documento=None, rubro_documento=None,
+                 cara_falsa=None):
         """Crea al empleado con sus datos y lo ubica fuera de pantalla."""
         self.nombre = nombre
         self.rubro = rubro
@@ -32,6 +35,8 @@ class Visitante:
         self.piso = piso
         self.imagen_id = imagen_id
         self.es_impostor = es_impostor
+        # cara_falsa: su cara no coincide con la foto (usa las imágenes "impostor")
+        self.cara_falsa = es_impostor if cara_falsa is None else cara_falsa
         self.motivo = motivo
         self.nombre_documento = nombre_documento or nombre
         self.rubro_documento = rubro_documento or rubro
@@ -80,7 +85,7 @@ class Visitante:
 
         "normal", "normal_enojado", "impostor" o "impostor_enojado".
         """
-        base = "impostor" if self.es_impostor else "normal"
+        base = "impostor" if self.cara_falsa else "normal"
         return base + "_enojado" if self.impaciente() else base
 
     def frases(self):

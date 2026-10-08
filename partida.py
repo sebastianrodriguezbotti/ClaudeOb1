@@ -1,5 +1,7 @@
 """Clase Partida: guarda el estado de una partida y aplica sus reglas."""
 
+import random
+
 import ajustes as aj
 from objetos import Objeto, Sello
 from utilidades import (generar_visitante, decision_correcta,
@@ -21,6 +23,7 @@ class Partida:
         plan: lista de True/False con qué visitantes de la noche son impostores.
         apagones_en: números de los visitantes que apagan la luz en la noche.
         apagones_pendientes: de esos, los que todavía no la apagaron.
+        apagon_demora: segundos que espera el empleado actual antes de apagar la luz.
         mensaje, color_mensaje: texto de la última decisión o aviso.
     """
 
@@ -55,6 +58,8 @@ class Partida:
         nivel = self.config_nivel()
         paciencia = calcular_paciencia(self.racha, nivel)
         anterior = self.visitante.imagen_id if self.visitante else None
+        # cuánto después de llegar apaga la luz (si le toca): al azar
+        self.apagon_demora = random.uniform(*aj.APAGON_DEMORA)
         self.visitante = generar_visitante(paciencia, nivel, anterior,
                                            self.plan[self.atendidos])
         self.objetos = []
@@ -179,7 +184,7 @@ class Partida:
         visitante = self.visitante
         espero = visitante.paciencia_max - visitante.paciencia
         return (self.atendidos in self.apagones_pendientes
-                and visitante.llego() and espero >= aj.APAGON_RETRASO)
+                and visitante.llego() and espero >= self.apagon_demora)
 
     def iniciar_apagon(self):
         """Marca este apagón como hecho y suelta todo lo que se arrastraba."""

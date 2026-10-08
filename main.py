@@ -15,7 +15,8 @@ from pantallas import (crear_botones, dibujar_escenario, dibujar_menu,
                        dibujar_texto, dibujar_config, dibujar_juego,
                        dibujar_pausa, dibujar_pantalla_final)
 from partida import Partida
-from utilidades import cargar_sonidos, cargar_imagenes, aplicar_volumen
+from utilidades import (cargar_sonidos, cargar_imagenes, aplicar_volumen,
+                        iniciar_musica)
 
 
 def manejar_evento_juego(evento, clic, partida, ui, sonidos):
@@ -95,6 +96,7 @@ def main():
     velo_apagon.fill(aj.COLOR_NEGRO)
     imagenes = cargar_imagenes()
     sonidos = cargar_sonidos()
+    iniciar_musica()          # música de tensión de fondo, en bucle
     ui = crear_botones()
     deslizador = Deslizador(aj.SLIDER_X, aj.SLIDER_Y, aj.SLIDER_ANCHO,
                             aj.VOLUMEN)

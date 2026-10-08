@@ -158,28 +158,33 @@ COLOR_PACIENCIA_BAJA = (220, 80, 80)
 #   "piso"   = dice un piso que no corresponde a su lugar de trabajo
 #   "rubro"  = dice un rubro que no es de ese lugar
 #   "nombre" = el documento tiene su nombre mal escrito, o el de otro empleado
-#   "aspecto" = no dice nada raro: solo su cara no coincide con la foto del documento
+#   "aspecto" = su cara no coincide con la foto del documento
+# Un impostor tiene una o varias de estas pistas a la vez. Si "aspecto" no está,
+# su cara SÍ coincide con la foto (solo se delata por lo que dice o por el papel).
+# pistas: cuántas inconsistencias puede tener un impostor (se elige una al azar)
 # apagones: cuántas veces apagan la luz en la noche | cables: cuántos cables hay que
 # reconectar en cada apagón | tiempo_cables: segundos para hacerlo
 TIPOS_TODOS = ["nombre", "piso", "rubro", "aspecto"]
 NIVELES = [
     {"nombre": "Noche 1", "visitantes": 6, "empleados": 3,
      "impostores": 3, "paciencia": 30.0,
-     "tipos": ["piso", "rubro", "aspecto"],
+     "tipos": ["piso", "rubro", "aspecto"], "pistas": [1, 1, 2],
      "apagones": 1, "cables": 3, "tiempo_cables": 25.0},
     {"nombre": "Noche 2", "visitantes": 8, "empleados": 5,
      "impostores": 4, "paciencia": 25.0, "tipos": TIPOS_TODOS,
+     "pistas": [1, 2, 2],
      "apagones": 1, "cables": 4, "tiempo_cables": 22.0},
     {"nombre": "Noche 3", "visitantes": 10, "empleados": 8,
      "impostores": 6, "paciencia": 20.0, "tipos": TIPOS_TODOS,
+     "pistas": [1, 2, 2, 3],
      "apagones": 2, "cables": 5, "tiempo_cables": 20.0},
 ]
 
 # --- Apagón (minijuego de cables) ---
 # Un impostor apaga la luz (1 o 2 veces por noche): hay que reconectar los cables.
-APAGON_MIN_ATENDIDOS = 2       # un apagón ocurre después de atender al menos a 2
+APAGON_MIN_ATENDIDOS = 1       # un apagón ocurre después de atender al menos a 1
 APAGON_ALPHA = 225             # oscuridad del apagón (0 = nada, 255 = negro total)
-APAGON_RETRASO = 3.0           # segundos después de que el impostor llega
+APAGON_DEMORA = (0.5, 2.5)      # segundos (mín., máx.) desde que el impostor llega
 APAGON_TITILEO = 2.0           # segundos que titila la luz antes de quedar a oscuras
 APAGON_PARPADEO = 0.12         # duración de cada parpadeo (segundos)
 APAGON_PAUSA_FINAL = 0.9       # segundos que se muestra el resultado
@@ -201,6 +206,9 @@ NOMBRES_SONIDOS = ["timbre", "acierto", "error", "susto", "papel", "sello",
                    "apagon", "cable"]
 FRECUENCIA_MUESTREO = 44100    # muestras por segundo de los .wav
 VOLUMEN = 0.6                  # volumen inicial (0.0 a 1.0)
+MUSICA_RUTA = os.path.join(SONIDOS_CARPETA, "musica.wav")   # música de tensión
+MUSICA_DURACION = 16           # segundos que dura antes de repetirse
+MUSICA_VOLUMEN_REL = 0.5       # la música suena más bajo que los efectos
 
 # --- Interfaz ---
 # Fuentes: nombre y tamaño de cada una (se cargan una vez en main.py)
@@ -220,6 +228,8 @@ PANEL_CONFIG = (200, 70, 560, 400)
 PANEL_EDIFICIO = (640, 10, 310, 255)
 PANEL_FICHA = (20, 445, 600, 70)
 PANEL_BANDEJA = (632, 435, 326, 70)
+MENSAJE_LARGO = 56             # más de estos caracteres: se achica y se parte en líneas
+MENSAJE_ANCHO_LINEA = 72       # caracteres por línea en un mensaje largo
 PISTA_TAMANO = (320, 22)       # cartelito junto al mouse
 # Botones: nombre -> (texto, centro) o (texto, centro, ancho, alto)
 _CX = ANCHO // 2
