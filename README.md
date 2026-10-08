@@ -140,4 +140,5 @@ Referencia (APA 7):
 
 ## Repositorio
 
-⚠ COMPLETAR: enlace al repositorio de GitHub: `https://github.com/sebastianrodriguezbotti/ClaudeOb1`
+Enlace al repositorio de GitHub: 
+## https://github.com/sebastianrodriguezbotti/ClaudeOb1
