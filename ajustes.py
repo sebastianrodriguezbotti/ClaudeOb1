@@ -24,6 +24,7 @@ ESTADO_PAUSA = "pausa"
 ESTADO_NIVEL_COMPLETO = "nivel_completo"
 ESTADO_FIN = "fin"
 ESTADO_VICTORIA = "victoria"
+ESTADO_APAGON = "apagon"
 
 # --- Colores (R, G, B) ---
 COLOR_FONDO = (18, 18, 28)
@@ -100,7 +101,7 @@ PISOS = sorted({d["piso"] for d in LUGARES.values()})
 # Cada uno tiene un lugar y un rubro distintos.
 EMPLEADOS = [
     {"nombre": "Marta Gómez", "imagen": "marta", "genero": "f",
-     "lugar": "Enfermería"},
+     "lugar": "Laboratorio"},
     {"nombre": "Hugo Pereira", "imagen": "hugo", "genero": "m",
      "lugar": "Seguridad"},
     {"nombre": "Lucía Ferrari", "imagen": "lucia", "genero": "f",
@@ -114,7 +115,7 @@ EMPLEADOS = [
     {"nombre": "Paula Rodríguez", "imagen": "paula", "genero": "f",
      "lugar": "Comedor"},
     {"nombre": "Julia Rodríguez", "imagen": "julia", "genero": "f",
-     "lugar": "Laboratorio"},
+     "lugar": "Enfermería"},
 ]
 # Letras que se confunden fácil: así se escribe mal un nombre en el documento.
 CAMBIOS_PARECIDOS = [("ó", "o"), ("í", "i"), ("á", "a"), ("é", "e"),
@@ -152,30 +153,93 @@ COLOR_PACIENCIA_BAJA = (220, 80, 80)
 
 # --- Niveles (noches) ---
 # visitantes: cuántos hay que atender | empleados: cuántos personajes (y lugares) hay
-# prob_impostor: chance de que sea impostor | paciencia: segundos iniciales
-# tipos: cómo puede delatarse un impostor:
+# impostores: cuántos de los visitantes SON impostores (cantidad exacta, mezclada al azar)
+# paciencia: segundos iniciales | tipos: cómo puede delatarse un impostor:
 #   "piso"   = dice un piso que no corresponde a su lugar de trabajo
 #   "rubro"  = dice un rubro que no es de ese lugar
 #   "nombre" = el documento tiene su nombre mal escrito, o el de otro empleado
 #   "aspecto" = no dice nada raro: solo su cara no coincide con la foto del documento
+# cables: cuántos cables hay que reconectar en el apagón | tiempo_cables: segundos para hacerlo
 TIPOS_TODOS = ["nombre", "piso", "rubro", "aspecto"]
 NIVELES = [
     {"nombre": "Noche 1", "visitantes": 6, "empleados": 3,
-     "prob_impostor": 0.35, "paciencia": 30.0,
-     "tipos": ["piso", "rubro", "aspecto"]},
+     "impostores": 3, "paciencia": 30.0,
+     "tipos": ["piso", "rubro", "aspecto"],
+     "cables": 3, "tiempo_cables": 25.0},
     {"nombre": "Noche 2", "visitantes": 8, "empleados": 5,
-     "prob_impostor": 0.45, "paciencia": 25.0, "tipos": TIPOS_TODOS},
+     "impostores": 4, "paciencia": 25.0, "tipos": TIPOS_TODOS,
+     "cables": 4, "tiempo_cables": 22.0},
     {"nombre": "Noche 3", "visitantes": 10, "empleados": 8,
-     "prob_impostor": 0.50, "paciencia": 20.0, "tipos": TIPOS_TODOS},
+     "impostores": 6, "paciencia": 20.0, "tipos": TIPOS_TODOS,
+     "cables": 5, "tiempo_cables": 20.0},
 ]
+
+# --- Apagón (minijuego de cables) ---
+# Una vez por noche, un impostor apaga la luz: hay que reconectar los cables.
+APAGON_MIN_ATENDIDOS = 2       # el apagón ocurre después de atender al menos a 2
+APAGON_RETRASO = 3.0           # segundos después de que el impostor llega
+APAGON_TITILEO = 2.0           # segundos que titila la luz antes de quedar a oscuras
+APAGON_PARPADEO = 0.12         # duración de cada parpadeo (segundos)
+APAGON_PAUSA_FINAL = 0.9       # segundos que se muestra el resultado
+COLOR_NEGRO = (0, 0, 0)
+COLORES_CABLES = [(220, 50, 50), (50, 100, 235), (240, 205, 50),
+                  (225, 70, 225), (60, 200, 100)]
+CABLES_X_IZQ = 210             # x de los enchufes de la izquierda
+CABLES_X_DER = 750             # x de los enchufes de la derecha
+CABLES_Y_CENTRO = 300          # y del centro de la columna de enchufes
+CABLES_PASO = 62               # separación vertical entre enchufes
+CABLES_RADIO = 20              # radio del enchufe (zona donde se agarra y se suelta)
+CABLES_GROSOR = 12             # grosor del cable
+CABLES_BARRA = (260, 100, 440, 12)   # barra del tiempo: x, y, ancho, alto
+COLOR_ENCHUFE = (70, 70, 80)
 
 # --- Sonidos ---
 SONIDOS_CARPETA = os.path.join(RUTA_BASE, "sonidos")
-NOMBRES_SONIDOS = ["timbre", "acierto", "error", "susto", "papel", "sello"]
+NOMBRES_SONIDOS = ["timbre", "acierto", "error", "susto", "papel", "sello",
+                   "apagon", "cable"]
 FRECUENCIA_MUESTREO = 44100    # muestras por segundo de los .wav
 VOLUMEN = 0.6                  # volumen inicial (0.0 a 1.0)
 
 # --- Interfaz ---
+# Fuentes: nombre y tamaño de cada una (se cargan una vez en main.py)
+FUENTE_NOMBRE = "consolas"
+FUENTES_TAMANOS = {"titulo": 64, "grande": 28, "media": 20, "normal": 18,
+                   "chica": 15}
+# Velo oscuro que se pone detrás de los carteles (pausa, fin, victoria)
+COLOR_VELO = (0, 0, 0)
+VELO_ALPHA = 190
+# El título del menú parpadea como una luz fallando
+COLOR_TITULO_APAGADO = (110, 30, 30)
+PARPADEO_MS = 90               # duración de cada tic del parpadeo
+PARPADEO_CADA = 31             # cada cuántos tics se apaga el título
+# Paneles (x, y, ancho, alto)
+PANEL_AYUDA = (80, 50, 800, 440)
+PANEL_CONFIG = (200, 70, 560, 400)
+PANEL_EDIFICIO = (640, 10, 310, 255)
+PANEL_FICHA = (20, 445, 600, 70)
+PANEL_BANDEJA = (632, 435, 326, 70)
+PISTA_TAMANO = (320, 22)       # cartelito junto al mouse
+# Botones: nombre -> (texto, centro) o (texto, centro, ancho, alto)
+_CX = ANCHO // 2
+_CX_PEDIR = VISITANTE_X_DESTINO + 190    # menú que sale al clickear al empleado
+BOTONES = {
+    "jugar": ("Jugar", (_CX, 240)),
+    "instrucciones": ("Instrucciones", (_CX, 305)),
+    "objetivo": ("Objetivo", (_CX, 370)),
+    "sonido": ("Sonido: SÍ", (_CX, 320)),
+    "volver": ("Volver", (_CX, 400)),
+    "pausa": ("II", (618, 30), 36, 36),
+    "pedir_documento": ("Pedir documento", (_CX_PEDIR, 290), 230, 38),
+    "pedir_autorizacion": ("Pedir autorización", (_CX_PEDIR, 336), 230, 38),
+    "p_continuar": ("Continuar", (_CX, 200)),
+    "p_instrucciones": ("Instrucciones", (_CX, 262)),
+    "p_volumen": ("Volumen", (_CX, 324)),
+    "p_inicio": ("Volver al inicio", (_CX, 386)),
+    "siguiente": ("Siguiente noche", (_CX, 340)),
+    "reintentar": ("Reintentar", (_CX, 340)),
+    "de_nuevo": ("Jugar de nuevo", (_CX, 340)),
+    "menu": ("Menú", (_CX, 400)),
+}
 BOTON_ANCHO = 260
 BOTON_ALTO = 48
 ENGRANAJE_CENTRO = (ANCHO - 45, 45)
@@ -206,5 +270,6 @@ TEXTO_OBJETIVO = [
     "- Dejá entrar solo a los empleados verdaderos (sello APROBADO).",
     "- Rechazá a los impostores (sello RECHAZADO).",
     "- Cada error o tiempo agotado te cuesta una vida.",
+    "- Si un impostor apaga la luz, reconectá los cables a tiempo.",
     "- Sobreviví a las 3 noches. Cada una es más difícil.",
 ]

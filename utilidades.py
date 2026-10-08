@@ -32,9 +32,31 @@ def alterar_nombre(nombre):
     return "".join(letras)
 
 
+def armar_plan_impostores(nivel):
+    """Devuelve una lista de True/False (uno por visitante de la noche).
+
+    True = ese visitante es impostor. Hay exactamente nivel["impostores"]
+    impostores, en un orden al azar.
+    """
+    plan = ([True] * nivel["impostores"]
+            + [False] * (nivel["visitantes"] - nivel["impostores"]))
+    random.shuffle(plan)
+    return plan
+
+
+def elegir_apagon(plan):
+    """Devuelve el número de visitante (empezando en 0) que apaga la luz.
+
+    Siempre es un impostor; si se puede, uno que no sea de los primeros.
+    """
+    impostores = [i for i, es in enumerate(plan) if es]
+    tarde = [i for i in impostores if i >= aj.APAGON_MIN_ATENDIDOS]
+    return random.choice(tarde or impostores)
+
+
 def generar_visitante(paciencia=aj.PACIENCIA_BASE, nivel=aj.NIVELES[0],
-                      evitar_imagen=None):
-    """Crea un empleado al azar, verdadero o impostor, según el nivel.
+                      evitar_imagen=None, es_impostor=False):
+    """Crea un empleado al azar; 'es_impostor' dice si es verdadero o impostor.
 
     Elige uno de los primeros N empleados de ajustes.EMPLEADOS
     ('evitar_imagen' evita repetir al anterior). Un impostor usa las
@@ -52,7 +74,7 @@ def generar_visitante(paciencia=aj.PACIENCIA_BASE, nivel=aj.NIVELES[0],
     info = aj.LUGARES[lugar]
     rubro, piso = info["rubro"][indice], info["piso"]
 
-    if random.random() >= nivel["prob_impostor"]:
+    if not es_impostor:
         return Visitante(nombre, rubro, lugar, piso, datos["imagen"], False,
                          paciencia=paciencia)
 

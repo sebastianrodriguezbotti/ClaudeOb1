@@ -1,7 +1,7 @@
-"""Esta noche no - paso 10: entrega de la autorización y personajes al azar.
+"""Esta noche no - paso 11: más impostores y apagón con minijuego de cables.
 
 Estados: menú, instrucciones, objetivo, configuración, jugando, pausa,
-nivel completo, fin y victoria. Se maneja con el mouse (botones, clic en el
+apagón, nivel completo, fin y victoria. Se maneja con el mouse (botones, clic en el
 empleado, arrastrar papeles y sellos) y con el teclado (ENTER = continuar,
 ESC = pausa / volver).
 """
@@ -9,6 +9,7 @@ ESC = pausa / volver).
 import pygame
 
 import ajustes as aj
+from cables import Apagon
 from interfaz import Deslizador, punto_en_engranaje
 from pantallas import (crear_botones, dibujar_menu, dibujar_texto,
                        dibujar_config, dibujar_juego, dibujar_pausa,
@@ -83,16 +84,12 @@ def main():
     reloj = pygame.time.Clock()
 
     # --- Recursos: se cargan UNA sola vez, antes del bucle ---
-    fuentes = {
-        "titulo": pygame.font.SysFont("consolas", 64, bold=True),
-        "grande": pygame.font.SysFont("consolas", 28),
-        "media": pygame.font.SysFont("consolas", 20),
-        "normal": pygame.font.SysFont("consolas", 18),
-        "chica": pygame.font.SysFont("consolas", 15),
-    }
+    fuentes = {nombre: pygame.font.SysFont(aj.FUENTE_NOMBRE, tamano,
+                                           bold=(nombre == "titulo"))
+               for nombre, tamano in aj.FUENTES_TAMANOS.items()}
     velo = pygame.Surface((aj.ANCHO, aj.ALTO))   # fondo oscuro de los carteles
-    velo.set_alpha(190)
-    velo.fill((0, 0, 0))
+    velo.set_alpha(aj.VELO_ALPHA)
+    velo.fill(aj.COLOR_VELO)
     imagenes = cargar_imagenes()
     sonidos = cargar_sonidos()
     ui = crear_botones()
@@ -105,6 +102,7 @@ def main():
     estado = aj.ESTADO_MENU
     origen = aj.ESTADO_MENU   # a dónde vuelven instrucciones y configuración
     partida = Partida()
+    apagon = None   # minijuego de cables (se crea cuando un impostor apaga la luz)
 
     corriendo = True
     while corriendo:
@@ -130,6 +128,8 @@ def main():
                     estado = aj.ESTADO_PAUSA
                 elif estado == aj.ESTADO_PAUSA:
                     estado = aj.ESTADO_JUGANDO
+                elif estado == aj.ESTADO_APAGON:
+                    pass          # no se puede pausar ni salir en el apagón
                 elif estado in (aj.ESTADO_INSTRUCCIONES, aj.ESTADO_OBJETIVO,
                                 aj.ESTADO_CONFIG):
                     estado = origen
@@ -188,6 +188,13 @@ def main():
                 elif clic and ui["p_inicio"].bajo_mouse(clic):
                     estado = aj.ESTADO_MENU
 
+            elif estado == aj.ESTADO_APAGON:
+                accion = apagon.manejar_evento(evento)
+                if accion == "conectado":
+                    sonidos["cable"].play()
+                elif accion == "error":
+                    sonidos["error"].play()
+
             elif estado == aj.ESTADO_NIVEL_COMPLETO:
                 if tecla == pygame.K_RETURN or (
                         clic and ui["siguiente"].bajo_mouse(clic)):
@@ -222,6 +229,22 @@ def main():
                     estado = aj.ESTADO_NIVEL_COMPLETO
                 elif evento_fin == "victoria":
                     estado = aj.ESTADO_VICTORIA
+            elif partida.debe_apagar():       # un impostor apaga la luz
+                nivel = partida.config_nivel()
+                apagon = Apagon(nivel["cables"], nivel["tiempo_cables"])
+                partida.iniciar_apagon()
+                sonidos["apagon"].play()
+                estado = aj.ESTADO_APAGON
+
+        elif estado == aj.ESTADO_APAGON:
+            apagon.actualizar(dt)
+            if apagon.terminado():
+                sonidos["acierto" if apagon.exito else "error"].play()
+                if partida.terminar_apagon(apagon.exito):   # sin vidas
+                    estado = aj.ESTADO_FIN
+                    sonidos["susto"].play()
+                else:
+                    estado = aj.ESTADO_JUGANDO
 
         # 4) DIBUJAR
         pantalla.fill(aj.COLOR_FONDO)
@@ -236,6 +259,10 @@ def main():
         elif estado == aj.ESTADO_CONFIG:
             dibujar_config(pantalla, fuentes, ui, deslizador, pos_mouse,
                            imagenes)
+        elif estado == aj.ESTADO_APAGON:
+            dibujar_juego(pantalla, partida, fuentes, ui, pos_mouse, False,
+                          imagenes)
+            apagon.dibujar(pantalla, fuentes)
         else:
             jugando = estado == aj.ESTADO_JUGANDO
             dibujar_juego(pantalla, partida, fuentes, ui, pos_mouse, jugando,

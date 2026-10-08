@@ -3,7 +3,8 @@
 import ajustes as aj
 from objetos import Objeto, Sello
 from utilidades import (generar_visitante, decision_correcta,
-                        calcular_puntaje, calcular_paciencia, armar_mensaje)
+                        calcular_puntaje, calcular_paciencia, armar_mensaje,
+                        armar_plan_impostores, elegir_apagon)
 
 
 class Partida:
@@ -17,6 +18,8 @@ class Partida:
         objetos: documento y autorización que el jugador tiene en pantalla.
         sellos: los dos sellos de la bandeja (APROBADO y RECHAZADO).
         menu_abierto: True si se ve el menú "pedir documento / autorización".
+        plan: lista de True/False con qué visitantes de la noche son impostores.
+        apagon_en, apagon_hecho: qué visitante apaga la luz y si ya lo hizo.
         mensaje, color_mensaje: texto de la última decisión o aviso.
     """
 
@@ -40,6 +43,9 @@ class Partida:
         self.atendidos = 0
         self.mensaje = ""
         self.color_mensaje = aj.COLOR_TEXTO
+        self.plan = armar_plan_impostores(self.config_nivel())
+        self.apagon_en = elegir_apagon(self.plan)   # qué visitante apaga la luz
+        self.apagon_hecho = False
         self.siguiente_visitante()
 
     def siguiente_visitante(self):
@@ -47,7 +53,8 @@ class Partida:
         nivel = self.config_nivel()
         paciencia = calcular_paciencia(self.racha, nivel)
         anterior = self.visitante.imagen_id if self.visitante else None
-        self.visitante = generar_visitante(paciencia, nivel, anterior)
+        self.visitante = generar_visitante(paciencia, nivel, anterior,
+                                           self.plan[self.atendidos])
         self.objetos = []
         self.menu_abierto = False
         for sello in self.sellos:
@@ -162,3 +169,35 @@ class Partida:
             return acerto, "nivel_completo"
         self.siguiente_visitante()
         return acerto, None
+
+    # --- Apagón ---
+
+    def debe_apagar(self):
+        """Devuelve True si el impostor de turno tiene que apagar la luz ya."""
+        visitante = self.visitante
+        espero = visitante.paciencia_max - visitante.paciencia
+        return (not self.apagon_hecho and self.atendidos == self.apagon_en
+                and visitante.llego() and espero >= aj.APAGON_RETRASO)
+
+    def iniciar_apagon(self):
+        """Marca el apagón como hecho y suelta todo lo que se arrastraba."""
+        self.apagon_hecho = True
+        self.soltar_todo()
+        self.mensaje = "¡El impostor apagó la luz!"
+        self.color_mensaje = aj.COLOR_ERROR
+
+    def terminar_apagon(self, exito):
+        """Aplica el resultado del minijuego de cables.
+
+        Si no se arregló a tiempo se pierde una vida y la racha.
+        Devuelve True si eso termina la partida (sin vidas).
+        """
+        if exito:
+            self.mensaje = "Luz restablecida"
+            self.color_mensaje = aj.COLOR_ACIERTO
+            return False
+        self.vidas -= 1
+        self.racha = 0
+        self.mensaje = "No arreglaste la luz a tiempo: perdés una vida"
+        self.color_mensaje = aj.COLOR_ERROR
+        return self.vidas <= 0
