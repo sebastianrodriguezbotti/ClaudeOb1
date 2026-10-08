@@ -103,19 +103,20 @@ def dibujar_edificio(pantalla, fuentes, nivel):
     pantalla.blit(fuentes["normal"].render("EDIFICIO", True, aj.COLOR_TEXTO),
                   (650, 16))
     pisos = {}
-    for lugar in list(aj.LUGARES)[:nivel["lugares"]]:
+    for datos in aj.EMPLEADOS[:nivel["empleados"]]:
+        lugar = datos["lugar"]
         pisos.setdefault(aj.LUGARES[lugar]["piso"], []).append(lugar)
     y = 42
     for piso in sorted(pisos):
         pantalla.blit(fuentes["normal"].render(f"PISO {piso}", True,
                                                aj.COLOR_TEXTO), (650, y))
-        y += 22
+        y += 20
         for lugar in pisos[piso]:
             personal = aj.LUGARES[lugar]["personal"]
             pantalla.blit(fuentes["chica"].render(
                 f"{lugar} ({personal})", True, aj.COLOR_SECUNDARIO),
                 (665, y))
-            y += 19
+            y += 17
 
 
 def dibujar_ficha(pantalla, fuentes, visitante):

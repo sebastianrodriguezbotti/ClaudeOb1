@@ -36,34 +36,34 @@ def generar_visitante(paciencia=aj.PACIENCIA_BASE, nivel=aj.NIVELES[0],
                       evitar_imagen=None):
     """Crea un empleado al azar, verdadero o impostor, según el nivel.
 
-    Combina al azar una cara, un nombre, un apellido y un lugar de trabajo
-    (el rubro sale del lugar y del género de la cara). 'evitar_imagen'
-    evita repetir la cara del empleado anterior.
-
-    Un impostor usa las imágenes de "impostor" (su cara no coincide con la
-    foto del documento) y además tiene UNA inconsistencia: dice un piso que
-    no corresponde, dice un rubro que no es de ese lugar, el nombre de su
-    documento está mal escrito, o ninguna ("aspecto": solo se nota la cara).
+    Elige uno de los primeros N empleados de ajustes.EMPLEADOS
+    ('evitar_imagen' evita repetir al anterior). Un impostor usa las
+    imágenes de "impostor" (su cara no coincide con la foto del documento)
+    y además tiene UNA inconsistencia: dice un piso que no corresponde,
+    dice un rubro que no es de ese lugar, el nombre de su documento está
+    mal (mal escrito o de otro empleado), o ninguna ("aspecto": solo se
+    nota la cara).
     """
-    lugares = list(aj.LUGARES)[:nivel["lugares"]]
-    caras = [c for c in aj.CARAS if c["imagen"] != evitar_imagen] or aj.CARAS
-    cara = random.choice(caras)
-    genero = cara["genero"]
-    indice = 0 if genero == "m" else 1          # posición en la tupla del rubro
-    nombre = (f"{random.choice(aj.NOMBRES[genero])} "
-              f"{random.choice(aj.APELLIDOS)}")
-    lugar = random.choice(lugares)
+    empleados = aj.EMPLEADOS[:nivel["empleados"]]
+    candidatos = [e for e in empleados if e["imagen"] != evitar_imagen]
+    datos = random.choice(candidatos or empleados)
+    indice = 0 if datos["genero"] == "m" else 1   # posición en la tupla del rubro
+    nombre, lugar = datos["nombre"], datos["lugar"]
     info = aj.LUGARES[lugar]
     rubro, piso = info["rubro"][indice], info["piso"]
 
     if random.random() >= nivel["prob_impostor"]:
-        return Visitante(nombre, rubro, lugar, piso, cara["imagen"], False,
+        return Visitante(nombre, rubro, lugar, piso, datos["imagen"], False,
                          paciencia=paciencia)
 
     tipo = random.choice(nivel["tipos"])
     nombre_documento = rubro_documento = None
     if tipo == "nombre":
-        nombre_documento = alterar_nombre(nombre)
+        if random.random() < 0.5:
+            nombre_documento = alterar_nombre(nombre)      # mal escrito
+        else:                                              # el de otro empleado
+            nombre_documento = random.choice(
+                [e["nombre"] for e in empleados if e["nombre"] != nombre])
         motivo = f"El documento decía {nombre_documento}, no {nombre}"
     elif tipo == "piso":
         falso = random.choice([p for p in aj.PISOS if p != piso])
@@ -72,13 +72,13 @@ def generar_visitante(paciencia=aj.PACIENCIA_BASE, nivel=aj.NIVELES[0],
     elif tipo == "aspecto":
         motivo = "Su cara no coincidía con la foto del documento"
     else:
-        otro = random.choice([l for l in lugares if l != lugar])
-        falso = aj.LUGARES[otro]["rubro"][indice]
+        otro = random.choice([e for e in empleados if e["lugar"] != lugar])
+        falso = aj.LUGARES[otro["lugar"]]["rubro"][indice]
         motivo = (f"Dijo ser {falso}, pero va {info['donde']} "
                   f"({info['personal']})")
         rubro_documento = rubro      # su documento dice el rubro verdadero
         rubro = falso
-    return Visitante(nombre, rubro, lugar, piso, cara["imagen"], True,
+    return Visitante(nombre, rubro, lugar, piso, datos["imagen"], True,
                      motivo, paciencia, nombre_documento, rubro_documento)
 
 
@@ -218,7 +218,7 @@ def cargar_imagenes():
         "visitantes": {},
         "fotos": {},
     }
-    for datos in aj.CARAS:
+    for datos in aj.EMPLEADOS:
         prefijo = datos["imagen"]
         if prefijo in imagenes["visitantes"]:
             continue

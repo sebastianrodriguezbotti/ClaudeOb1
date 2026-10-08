@@ -74,43 +74,48 @@ SACUDIDA_ENOJADO = 3           # cuánto tiembla cuando está enojado (0 = no ti
 # --- La fábrica ---
 # piso: en qué piso queda | rubro: (masculino, femenino) de quien trabaja ahí
 # personal: lo mismo en plural | donde: cómo se dice "voy ..." (con su artículo)
-# El orden importa: cada noche usa solo los primeros N lugares ("lugares").
 LUGARES = {
     "Recepción": {"piso": 1, "rubro": ("recepcionista", "recepcionista"),
                   "personal": "recepcionistas", "donde": "a Recepción"},
-    "Laboratorio": {"piso": 2, "rubro": ("científico", "científica"),
-                    "personal": "científicos", "donde": "al Laboratorio"},
-    "Seguridad": {"piso": 3, "rubro": ("guardia", "guardia"),
-                  "personal": "guardias", "donde": "a Seguridad"},
     "Depósito": {"piso": 1, "rubro": ("operario", "operaria"),
                  "personal": "operarios", "donde": "al Depósito"},
+    "Comedor": {"piso": 1, "rubro": ("cocinero", "cocinera"),
+                "personal": "cocineros", "donde": "al Comedor"},
+    "Laboratorio": {"piso": 2, "rubro": ("científico", "científica"),
+                    "personal": "científicos", "donde": "al Laboratorio"},
     "Taller": {"piso": 2, "rubro": ("mecánico", "mecánica"),
                "personal": "mecánicos", "donde": "al Taller"},
+    "Enfermería": {"piso": 2, "rubro": ("enfermero", "enfermera"),
+                   "personal": "enfermeros", "donde": "a Enfermería"},
+    "Seguridad": {"piso": 3, "rubro": ("guardia", "guardia"),
+                  "personal": "guardias", "donde": "a Seguridad"},
     "Oficinas": {"piso": 3, "rubro": ("administrativo", "administrativa"),
                  "personal": "administrativos", "donde": "a Oficinas"},
 }
 PISOS = sorted({d["piso"] for d in LUGARES.values()})
 
-# Personajes: cada uno es un juego de 4 imágenes (<imagen>_normal.png, etc.).
-# genero: "m" o "f" (decide qué nombres y qué forma del rubro le tocan).
-# Para sumar un personaje: agregá sus 4 imágenes y una línea acá.
-CARAS = [
-    {"imagen": "marta", "genero": "f"},
-    {"imagen": "hugo", "genero": "m"},
-    {"imagen": "lucia", "genero": "f"},
-    {"imagen": "tomas", "genero": "m"},
-    {"imagen": "elena", "genero": "f"},
+# Empleados (cada noche usa solo los primeros N, según "empleados").
+# imagen = prefijo de sus 4 archivos (ej. marta_normal.png, marta_impostor.png)
+# genero = "m" o "f" (decide la forma de su rubro) | lugar = dónde trabaja
+# Cada uno tiene un lugar y un rubro distintos.
+EMPLEADOS = [
+    {"nombre": "Marta Gómez", "imagen": "marta", "genero": "f",
+     "lugar": "Enfermería"},
+    {"nombre": "Hugo Pereira", "imagen": "hugo", "genero": "m",
+     "lugar": "Seguridad"},
+    {"nombre": "Lucía Ferrari", "imagen": "lucia", "genero": "f",
+     "lugar": "Recepción"},
+    {"nombre": "Tomás Rodríguez", "imagen": "tomas", "genero": "m",
+     "lugar": "Taller"},
+    {"nombre": "Elena Sousa", "imagen": "elena", "genero": "f",
+     "lugar": "Depósito"},
+    {"nombre": "Gonzalo Rodríguez", "imagen": "gonzalo", "genero": "m",
+     "lugar": "Oficinas"},
+    {"nombre": "Paula Rodríguez", "imagen": "paula", "genero": "f",
+     "lugar": "Comedor"},
+    {"nombre": "Julia Rodríguez", "imagen": "julia", "genero": "f",
+     "lugar": "Laboratorio"},
 ]
-# Cada empleado sale de combinar al azar: una cara + nombre + apellido + lugar.
-NOMBRES = {
-    "f": ["Marta", "Lucía", "Elena", "Julia", "Sofía", "Carla", "Paula",
-          "Valentina", "Camila", "Renata"],
-    "m": ["Hugo", "Tomás", "Diego", "Martín", "Andrés", "Bruno", "Mateo",
-          "Sergio", "Gonzalo", "Ignacio"],
-}
-APELLIDOS = ["Gómez", "Pereira", "Ferrari", "Rivero", "Souza", "Suárez",
-             "Méndez", "Olivera", "Núñez", "Silva", "Cabrera", "Benítez",
-             "Fernández", "Rodríguez", "Techera", "Barrios"]
 # Letras que se confunden fácil: así se escribe mal un nombre en el documento.
 CAMBIOS_PARECIDOS = [("ó", "o"), ("í", "i"), ("á", "a"), ("é", "e"),
                      ("ú", "u"), ("z", "s"), ("s", "z"), ("y", "i"),
@@ -146,21 +151,21 @@ COLOR_PACIENCIA_MEDIA = (230, 200, 80)
 COLOR_PACIENCIA_BAJA = (220, 80, 80)
 
 # --- Niveles (noches) ---
-# visitantes: cuántos empleados hay que atender | lugares: cuántos hay en el edificio
+# visitantes: cuántos hay que atender | empleados: cuántos personajes (y lugares) hay
 # prob_impostor: chance de que sea impostor | paciencia: segundos iniciales
 # tipos: cómo puede delatarse un impostor:
 #   "piso"   = dice un piso que no corresponde a su lugar de trabajo
 #   "rubro"  = dice un rubro que no es de ese lugar
-#   "nombre" = el nombre de su documento está mal escrito
+#   "nombre" = el documento tiene su nombre mal escrito, o el de otro empleado
 #   "aspecto" = no dice nada raro: solo su cara no coincide con la foto del documento
 TIPOS_TODOS = ["nombre", "piso", "rubro", "aspecto"]
 NIVELES = [
-    {"nombre": "Noche 1", "visitantes": 6, "lugares": 3,
+    {"nombre": "Noche 1", "visitantes": 6, "empleados": 3,
      "prob_impostor": 0.35, "paciencia": 30.0,
      "tipos": ["piso", "rubro", "aspecto"]},
-    {"nombre": "Noche 2", "visitantes": 8, "lugares": 4,
+    {"nombre": "Noche 2", "visitantes": 8, "empleados": 5,
      "prob_impostor": 0.45, "paciencia": 25.0, "tipos": TIPOS_TODOS},
-    {"nombre": "Noche 3", "visitantes": 10, "lugares": 6,
+    {"nombre": "Noche 3", "visitantes": 10, "empleados": 8,
      "prob_impostor": 0.50, "paciencia": 20.0, "tipos": TIPOS_TODOS},
 ]
 
