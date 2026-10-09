@@ -30,22 +30,47 @@ def _texto_centrado(pantalla, fuente, texto, color, y):
     pantalla.blit(imagen, imagen.get_rect(center=(aj.ANCHO // 2, y)))
 
 
+def _boton_menu(pantalla, boton, fuente, pos_mouse):
+    """Dibuja un botón del menú: oscuro, con borde rojo que se enciende."""
+    encima = boton.bajo_mouse(pos_mouse)
+    pygame.draw.rect(pantalla, aj.COLOR_MENU_BOTON_HOVER if encima
+                     else aj.COLOR_MENU_BOTON, boton.rect, border_radius=4)
+    pygame.draw.rect(pantalla, aj.COLOR_MENU_BORDE_HOVER if encima
+                     else aj.COLOR_MENU_BORDE, boton.rect, 2, border_radius=4)
+    imagen = fuente.render(boton.texto.upper(), True, aj.COLOR_MENU_TEXTO)
+    pantalla.blit(imagen, imagen.get_rect(center=boton.rect.center))
+
+
 def dibujar_menu(pantalla, fuentes, ui, pos_mouse, imagenes):
-    """Dibuja la pantalla inicial: título, botones y engranaje."""
+    """Dibuja la pantalla inicial: título, botones y engranaje.
+
+    Usa la tipografía y los colores del afiche (título con resplandor rojo,
+    letra de máquina de escribir).
+    """
     dibujar_escenario(pantalla, imagenes)
     # el título parpadea de vez en cuando, como una luz fallando
     apagado = (pygame.time.get_ticks() // aj.PARPADEO_MS) % aj.PARPADEO_CADA == 0
-    color = aj.COLOR_TITULO_APAGADO if apagado else aj.COLOR_TITULO
-    _texto_centrado(pantalla, fuentes["titulo"], aj.TITULO.upper(), color, 110)
-    _texto_centrado(pantalla, fuentes["media"], aj.SUBTITULO,
-                    aj.COLOR_SECUNDARIO, 170)
+    versiones = imagenes.get("titulo")
+    if versiones:
+        imagen = versiones["apagado" if apagado else "encendido"]
+        pantalla.blit(imagen, imagen.get_rect(center=(aj.ANCHO // 2,
+                                                      aj.MENU_TITULO_Y)))
+    else:       # si no se pudo armar el efecto: texto simple
+        color = aj.COLOR_TITULO_APAGADO if apagado else aj.COLOR_TITULO
+        _texto_centrado(pantalla, fuentes["titulo"], aj.TITULO.upper(), color,
+                        aj.MENU_TITULO_Y)
+    _texto_centrado(pantalla, fuentes["menu_texto"], aj.SUBTITULO,
+                    aj.COLOR_MENU_SECUNDARIO, aj.MENU_SUBTITULO_Y)
     for nombre in ("jugar", "instrucciones", "objetivo"):
-        ui[nombre].dibujar(pantalla, fuentes["media"], pos_mouse)
+        _boton_menu(pantalla, ui[nombre], fuentes["menu_texto"], pos_mouse)
     encima = punto_en_engranaje(pos_mouse)
     dibujar_engranaje(pantalla, aj.ENGRANAJE_CENTRO, aj.ENGRANAJE_RADIO,
-                      aj.COLOR_TEXTO if encima else aj.COLOR_SECUNDARIO)
-    _texto_centrado(pantalla, fuentes["chica"], "ESC para salir",
-                    aj.COLOR_SECUNDARIO, 515)
+                      aj.COLOR_MENU_BORDE_HOVER if encima
+                      else aj.COLOR_MENU_BORDE)
+    _texto_centrado(pantalla, fuentes["menu_chica"], aj.MENU_LEMA,
+                    aj.COLOR_MENU_SECUNDARIO, aj.MENU_LEMA_Y)
+    _texto_centrado(pantalla, fuentes["menu_chica"], "ESC para salir",
+                    aj.COLOR_SECUNDARIO, aj.MENU_LEMA_Y + 24)
 
 
 def dibujar_texto(pantalla, fuentes, titulo, lineas, imagenes):

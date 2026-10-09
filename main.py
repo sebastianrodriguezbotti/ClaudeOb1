@@ -17,7 +17,8 @@ from pantallas import (crear_botones, dibujar_escenario, dibujar_menu,
                        dibujar_historia)
 from partida import Partida
 from utilidades import (cargar_sonidos, cargar_imagenes, aplicar_volumen,
-                        aplicar_volumen_musica, iniciar_musica)
+                        aplicar_volumen_musica, iniciar_musica,
+                        cargar_fuentes, crear_titulo)
 
 
 def manejar_evento_juego(evento, clic, partida, ui, sonidos):
@@ -86,9 +87,7 @@ def main():
     reloj = pygame.time.Clock()
 
     # --- Recursos: se cargan UNA sola vez, antes del bucle ---
-    fuentes = {nombre: pygame.font.SysFont(aj.FUENTE_NOMBRE, tamano,
-                                           bold=(nombre == "titulo"))
-               for nombre, tamano in aj.FUENTES_TAMANOS.items()}
+    fuentes = cargar_fuentes()
     velo = pygame.Surface((aj.ANCHO, aj.ALTO))   # fondo oscuro de los carteles
     velo.set_alpha(aj.VELO_ALPHA)
     velo.fill(aj.COLOR_VELO)
@@ -96,6 +95,10 @@ def main():
     velo_apagon.set_alpha(aj.APAGON_ALPHA)
     velo_apagon.fill(aj.COLOR_NEGRO)
     imagenes = cargar_imagenes()
+    try:                      # título con resplandor (si falla, texto simple)
+        imagenes["titulo"] = crear_titulo(fuentes["menu_titulo"])
+    except Exception as error:
+        print("[aviso] No se pudo armar el título con efecto:", error)
     sonidos = cargar_sonidos()
     iniciar_musica()          # música de tensión de fondo, en bucle
     ui = crear_botones()

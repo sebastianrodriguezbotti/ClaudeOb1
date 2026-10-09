@@ -6,7 +6,8 @@ import ajustes as aj
 from objetos import Objeto, Sello
 from utilidades import (generar_visitante, decision_correcta,
                         calcular_puntaje, calcular_paciencia, armar_mensaje,
-                        armar_plan_impostores, elegir_apagones)
+                        armar_plan_impostores, elegir_apagones,
+                        armar_orden_empleados)
 
 
 class Partida:
@@ -20,6 +21,7 @@ class Partida:
         objetos: documento y autorización que el jugador tiene en pantalla.
         sellos: los dos sellos de la bandeja (APROBADO y RECHAZADO).
         menu_abierto: True si se ve el menú "pedir documento / autorización".
+        orden: los empleados de la noche en el orden en que llegan (aparecen todos).
         plan: lista de True/False con qué visitantes de la noche son impostores.
         apagones_en: números de los visitantes que apagan la luz en la noche.
         apagones_pendientes: de esos, los que todavía no la apagaron.
@@ -48,6 +50,7 @@ class Partida:
         self.mensaje = ""
         self.color_mensaje = aj.COLOR_TEXTO
         self.plan = armar_plan_impostores(self.config_nivel())
+        self.orden = armar_orden_empleados(self.config_nivel())   # quién llega en cada turno
         # qué visitantes apagan la luz y cuáles todavía no lo hicieron
         self.apagones_en = elegir_apagones(self.plan, self.config_nivel()["apagones"])
         self.apagones_pendientes = set(self.apagones_en)
@@ -61,7 +64,8 @@ class Partida:
         # cuánto después de llegar apaga la luz (si le toca): al azar
         self.apagon_demora = random.uniform(*aj.APAGON_DEMORA)
         self.visitante = generar_visitante(paciencia, nivel, anterior,
-                                           self.plan[self.atendidos])
+                                           self.plan[self.atendidos],
+                                           self.orden[self.atendidos])
         self.objetos = []
         self.menu_abierto = False
         for sello in self.sellos:

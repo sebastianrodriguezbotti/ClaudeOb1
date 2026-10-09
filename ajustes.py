@@ -102,7 +102,7 @@ PISOS = sorted({d["piso"] for d in LUGARES.values()})
 # Cada uno tiene un lugar y un rubro distintos.
 EMPLEADOS = [
     {"nombre": "Marta Gómez", "imagen": "marta", "genero": "f",
-     "lugar": "Enfermería"},
+     "lugar": "Laboratorio"},
     {"nombre": "Hugo Pereira", "imagen": "hugo", "genero": "m",
      "lugar": "Seguridad"},
     {"nombre": "Lucía Ferrari", "imagen": "lucia", "genero": "f",
@@ -116,7 +116,7 @@ EMPLEADOS = [
     {"nombre": "Paula González", "imagen": "paula", "genero": "f",
      "lugar": "Comedor"},
     {"nombre": "Julia Olivera", "imagen": "julia", "genero": "f",
-     "lugar": "Laboratorio"},
+     "lugar": "Enfermería"},
 ]
 # Letras que se confunden fácil: así se escribe mal un nombre en el documento.
 CAMBIOS_PARECIDOS = [("z", "s"), ("s", "z"), ("c", "s"), ("s", "c"),
@@ -222,6 +222,35 @@ MUSICA_DURACION = 16           # segundos que dura antes de repetirse
 FUENTE_NOMBRE = "consolas"
 FUENTES_TAMANOS = {"titulo": 64, "grande": 28, "media": 20, "normal": 18,
                    "chica": 15}
+# Tipografía del menú inicial (la del afiche). Se usa el primer archivo que exista
+# en la carpeta "fuentes"; si ninguno existe se usa la fuente del sistema.
+FUENTES_CARPETA = os.path.join(RUTA_BASE, "fuentes")
+FUENTES_TITULO = ["titulo.ttf", "DejaVuSansCondensed-Bold.ttf"]
+FUENTES_MENU = ["CourierPrime-Bold.ttf", "LiberationMono-Bold.ttf"]
+TAMANO_MENU_TITULO = 104
+TAMANO_MENU_TEXTO = 22
+TAMANO_MENU_CHICA = 16
+# Título con resplandor rojo, como en el afiche
+COLOR_TITULO_TEXTO = (8, 4, 4)         # letras casi negras
+COLOR_TITULO_BRILLO = (235, 25, 25)    # resplandor rojo
+COLOR_TITULO_DESGASTE = (95, 18, 18)   # manchas que "gastan" las letras
+TITULO_MARGEN = 56                     # espacio alrededor para el resplandor
+TITULO_DESENFOQUE = 12                 # más grande = resplandor más difuso
+TITULO_BRILLO_FUERTE = 7               # cuántas veces se suma el resplandor (luz prendida)
+TITULO_BRILLO_DEBIL = 2                # ídem con el parpadeo (luz fallando)
+TITULO_MANCHAS = 260                   # cantidad de manchas de desgaste
+TITULO_ANCHO_MAX = ANCHO - 60          # el título no puede ser más ancho que esto
+MENU_TITULO_Y = 110
+MENU_SUBTITULO_Y = 190
+MENU_LEMA_Y = 495
+MENU_LEMA = "Compará documentos  -  Sellá  -  Desconfiá de todos"
+# Botones del menú (oscuros con borde rojo)
+COLOR_MENU_BOTON = (24, 10, 10)
+COLOR_MENU_BOTON_HOVER = (76, 16, 16)
+COLOR_MENU_BORDE = (150, 30, 30)
+COLOR_MENU_BORDE_HOVER = (240, 70, 70)
+COLOR_MENU_TEXTO = (240, 240, 240)
+COLOR_MENU_SECUNDARIO = (185, 185, 185)
 # Velo oscuro que se pone detrás de los carteles (pausa, fin, victoria)
 COLOR_VELO = (0, 0, 0)
 VELO_ALPHA = 190
@@ -236,7 +265,7 @@ PANEL_EDIFICIO = (640, 10, 310, 255)
 PANEL_FICHA = (20, 445, 600, 70)
 PANEL_BANDEJA = (632, 435, 326, 70)
 MENSAJE_LARGO = 56             # más de estos caracteres: se achica y se parte en líneas
-MENSAJE_ANCHO_LINEA = 72       # caracteres por línea en un mensaje largo
+MENSAJE_ANCHO_LINEA = 66       # caracteres por línea en un mensaje largo
 PISTA_TAMANO = (320, 22)       # cartelito junto al mouse
 # Botones: nombre -> (texto, centro) o (texto, centro, ancho, alto)
 _CX = ANCHO // 2

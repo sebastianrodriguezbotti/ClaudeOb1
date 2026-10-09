@@ -32,6 +32,25 @@ def alterar_nombre(nombre):
     return random.choice(sorted(opciones))
 
 
+def armar_orden_empleados(nivel):
+    """Devuelve la lista de empleados (uno por visitante) de la noche.
+
+    Cada empleado del edificio aparece al menos una vez; si hay más
+    visitantes que empleados, se repiten parejo. El orden se mezcla y se evita que el mismo
+    empleado llegue dos veces seguidas.
+    """
+    empleados = aj.EMPLEADOS[:nivel["empleados"]]
+    base = list(empleados)
+    random.shuffle(base)          # los que se repiten (si sobran) son al azar
+    # se reparte parejo: cada empleado aparece una o dos veces como mucho más
+    orden = [base[i % len(base)] for i in range(nivel["visitantes"])]
+    for _ in range(200):                      # reintenta hasta que no se repitan
+        random.shuffle(orden)
+        if all(a is not b for a, b in zip(orden, orden[1:])):
+            break
+    return orden[:nivel["visitantes"]]
+
+
 def armar_plan_impostores(nivel):
     """Devuelve una lista de True/False (uno por visitante de la noche).
 
@@ -59,8 +78,11 @@ def elegir_apagones(plan, cantidad):
 
 
 def generar_visitante(paciencia=aj.PACIENCIA_BASE, nivel=aj.NIVELES[0],
-                      evitar_imagen=None, es_impostor=False):
-    """Crea un empleado al azar; 'es_impostor' dice si es verdadero o impostor.
+                      evitar_imagen=None, es_impostor=False, empleado=None):
+    """Crea un empleado; 'es_impostor' dice si es verdadero o impostor.
+
+    'empleado' es el dato de aj.EMPLEADOS a usar; si no se da, se elige uno
+    al azar (sin repetir 'evitar_imagen').
 
     Elige uno de los primeros N empleados de ajustes.EMPLEADOS
     ('evitar_imagen' evita repetir al anterior).     y además tiene UNA O VARIAS inconsistencias combinadas: dice un piso que
@@ -71,7 +93,7 @@ def generar_visitante(paciencia=aj.PACIENCIA_BASE, nivel=aj.NIVELES[0],
     """
     empleados = aj.EMPLEADOS[:nivel["empleados"]]
     candidatos = [e for e in empleados if e["imagen"] != evitar_imagen]
-    datos = random.choice(candidatos or empleados)
+    datos = empleado or random.choice(candidatos or empleados)
     indice = 0 if datos["genero"] == "m" else 1   # posición en la tupla del rubro
     nombre, lugar = datos["nombre"], datos["lugar"]
     info = aj.LUGARES[lugar]
@@ -156,6 +178,73 @@ def armar_mensaje(visitante, acerto, tiempo_agotado=False):
     detalle = visitante.motivo if visitante.es_impostor else (
         "Era un empleado de verdad")
     return f"{prefijo} {detalle}"
+
+
+def _cargar_fuente(archivos, tamano, negrita=False):
+    """Carga la primera fuente de la lista que exista en la carpeta fuentes.
+
+    Si ninguna existe, usa la fuente del sistema (ajustes.FUENTE_NOMBRE).
+    """
+    for nombre in archivos:
+        ruta = os.path.join(aj.FUENTES_CARPETA, nombre)
+        if os.path.exists(ruta):
+            return pygame.font.Font(ruta, tamano)
+    return pygame.font.SysFont(aj.FUENTE_NOMBRE, tamano, bold=negrita)
+
+
+def cargar_fuentes():
+    """Devuelve un diccionario {nombre: pygame.font.Font} con todas las fuentes."""
+    fuentes = {nombre: pygame.font.SysFont(aj.FUENTE_NOMBRE, tamano,
+                                           bold=(nombre == "titulo"))
+               for nombre, tamano in aj.FUENTES_TAMANOS.items()}
+    fuentes["menu_titulo"] = _cargar_fuente(aj.FUENTES_TITULO,
+                                            aj.TAMANO_MENU_TITULO, True)
+    fuentes["menu_texto"] = _cargar_fuente(aj.FUENTES_MENU,
+                                           aj.TAMANO_MENU_TEXTO, True)
+    fuentes["menu_chica"] = _cargar_fuente(aj.FUENTES_MENU,
+                                           aj.TAMANO_MENU_CHICA, True)
+    return fuentes
+
+
+def crear_titulo(fuente):
+    """Dibuja el título del menú UNA vez, con resplandor rojo y desgaste.
+
+    Devuelve {"encendido": Surface, "apagado": Surface}: el título con la
+    luz prendida y con la luz fallando (resplandor débil), para parpadear.
+    """
+    texto = aj.TITULO.upper()
+    letras = fuente.render(texto, True, aj.COLOR_TITULO_TEXTO)
+    if letras.get_width() > aj.TITULO_ANCHO_MAX:       # si no entra, se achica
+        factor = aj.TITULO_ANCHO_MAX / letras.get_width()
+        letras = pygame.transform.smoothscale(
+            letras, (aj.TITULO_ANCHO_MAX, int(letras.get_height() * factor)))
+    ancho, alto = letras.get_size()
+    # manchas de desgaste solo sobre las letras (donde hay píxeles opacos)
+    azar = random.Random(5)               # fijo: el título sale igual siempre
+    for _ in range(aj.TITULO_MANCHAS):
+        x, y = azar.randrange(ancho), azar.randrange(alto)
+        if letras.get_at((x, y))[3] > 200:
+            letras.fill(aj.COLOR_TITULO_DESGASTE, (x, y, 2, 2))
+    # resplandor: las mismas letras en rojo, desenfocadas (achicar y agrandar)
+    margen = aj.TITULO_MARGEN
+    total = (ancho + 2 * margen, alto + 2 * margen)
+    brillo = pygame.Surface(total, pygame.SRCALPHA)
+    rojas = fuente.render(texto, True, aj.COLOR_TITULO_BRILLO)
+    rojas = pygame.transform.smoothscale(rojas, (ancho, alto))
+    brillo.blit(rojas, (margen, margen))
+    chico = pygame.transform.smoothscale(
+        brillo, (total[0] // aj.TITULO_DESENFOQUE,
+                 total[1] // aj.TITULO_DESENFOQUE))
+    brillo = pygame.transform.smoothscale(chico, total)
+    versiones = {}
+    for nombre, veces in (("encendido", aj.TITULO_BRILLO_FUERTE),
+                          ("apagado", aj.TITULO_BRILLO_DEBIL)):
+        imagen = pygame.Surface(total, pygame.SRCALPHA)
+        for _ in range(veces):
+            imagen.blit(brillo, (0, 0))
+        imagen.blit(letras, (margen, margen))
+        versiones[nombre] = imagen
+    return versiones
 
 
 def cargar_sonidos():
